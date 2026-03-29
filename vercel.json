@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/webhooks/whatsapp.ts": {
+      "maxDuration": 30
+    }
+  }
+}
