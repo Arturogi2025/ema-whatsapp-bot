@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
+import MobileNav from './MobileNav';
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -17,6 +18,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <main style={{ flex: 1, overflowY: 'auto', minWidth: 0 }}>
         {children}
       </main>
+      <MobileNav />
     </div>
   );
 }

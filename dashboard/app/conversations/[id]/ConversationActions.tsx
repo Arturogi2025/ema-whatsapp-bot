@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, Bot, UserCheck, XCircle, RotateCcw } from 'lucide-react';
+import { Send, Bot, UserCheck, XCircle, RotateCcw, Image, FileText } from 'lucide-react';
 import QuickReplies from '@/components/QuickReplies';
 
 interface ConversationActionsProps {
@@ -24,9 +24,46 @@ export default function ConversationActions({
   const [sendError, setSendError] = useState('');
   const [status, setStatus] = useState(conversationStatus);
   const [changingStatus, setChangingStatus] = useState(false);
+  const [showMediaInput, setShowMediaInput] = useState(false);
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaType, setMediaType] = useState<'image' | 'document'>('image');
 
   async function handleSend() {
-    if (!text.trim() || sending) return;
+    if (sending) return;
+
+    // Media send
+    if (showMediaInput && mediaUrl.trim()) {
+      setSending(true);
+      setSendError('');
+      try {
+        const res = await fetch(`/api/conversations/${conversationId}/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            mediaType,
+            mediaUrl: mediaUrl.trim(),
+            caption: text.trim() || undefined,
+          }),
+        });
+        if (res.ok) {
+          setText('');
+          setMediaUrl('');
+          setShowMediaInput(false);
+          router.refresh();
+        } else {
+          const data = await res.json();
+          setSendError(data.error || 'Error al enviar');
+        }
+      } catch {
+        setSendError('Error de conexión');
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
+    // Text send
+    if (!text.trim()) return;
     setSending(true);
     setSendError('');
 
@@ -195,8 +232,94 @@ export default function ConversationActions({
         </div>
       </div>
 
-      {/* Quick replies */}
-      <QuickReplies onSelect={(t) => setText(t)} />
+      {/* Quick replies + media buttons */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <QuickReplies onSelect={(t) => setText(t)} />
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button
+            onClick={() => { setShowMediaInput(!showMediaInput); setMediaType('image'); }}
+            title="Enviar imagen (URL)"
+            style={{
+              padding: '4px 8px',
+              borderRadius: 6,
+              border: `1px solid ${showMediaInput && mediaType === 'image' ? '#F5C300' : 'var(--border)'}`,
+              background: showMediaInput && mediaType === 'image' ? 'rgba(245, 195, 0, 0.1)' : 'transparent',
+              color: showMediaInput && mediaType === 'image' ? '#F5C300' : 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              fontSize: 11,
+            }}
+          >
+            <Image size={12} />
+          </button>
+          <button
+            onClick={() => { setShowMediaInput(!showMediaInput); setMediaType('document'); }}
+            title="Enviar documento (URL)"
+            style={{
+              padding: '4px 8px',
+              borderRadius: 6,
+              border: `1px solid ${showMediaInput && mediaType === 'document' ? '#3b82f6' : 'var(--border)'}`,
+              background: showMediaInput && mediaType === 'document' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+              color: showMediaInput && mediaType === 'document' ? '#3b82f6' : 'var(--text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 3,
+              fontSize: 11,
+            }}
+          >
+            <FileText size={12} />
+          </button>
+        </div>
+      </div>
+
+      {/* Media URL input */}
+      {showMediaInput && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+          <div style={{
+            padding: '3px 8px',
+            borderRadius: 5,
+            background: mediaType === 'image' ? 'rgba(245, 195, 0, 0.1)' : 'rgba(59, 130, 246, 0.1)',
+            color: mediaType === 'image' ? '#F5C300' : '#3b82f6',
+            fontSize: 10,
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            flexShrink: 0,
+          }}>
+            {mediaType === 'image' ? '📷 Imagen' : '📄 Doc'}
+          </div>
+          <input
+            value={mediaUrl}
+            onChange={(e) => setMediaUrl(e.target.value)}
+            placeholder={mediaType === 'image' ? 'URL de la imagen (https://...)' : 'URL del documento (https://...)'}
+            style={{
+              flex: 1,
+              padding: '6px 10px',
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)',
+              borderRadius: 7,
+              color: 'var(--text-primary)',
+              fontSize: 12,
+              outline: 'none',
+              fontFamily: 'inherit',
+            }}
+          />
+          <button
+            onClick={() => { setShowMediaInput(false); setMediaUrl(''); }}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+              fontSize: 11,
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
 
       {/* Reply box */}
       <div

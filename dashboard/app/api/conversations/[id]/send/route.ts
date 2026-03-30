@@ -6,8 +6,11 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { text } = await req.json();
-    if (!text?.trim()) {
+    const body = await req.json();
+    const { text, mediaType, mediaUrl, caption } = body;
+
+    // Validate: need text or media
+    if (!text?.trim() && !mediaUrl) {
       return NextResponse.json({ error: 'Mensaje vacío' }, { status: 400 });
     }
 
@@ -24,11 +27,51 @@ export async function POST(
       return NextResponse.json({ error: 'Conversación no encontrada' }, { status: 404 });
     }
 
+    const waToken = process.env.WHATSAPP_ACCESS_TOKEN;
+    const waPhoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+    if (!waToken || !waPhoneId) {
+      return NextResponse.json({ error: 'WhatsApp no configurado' }, { status: 500 });
+    }
+
+    let messageContent: string;
+    let waBody: any;
+
+    if (mediaUrl && mediaType === 'image') {
+      // Send image with optional caption
+      messageContent = caption ? `[📷 Imagen] ${caption}` : '[📷 Imagen enviada]';
+      waBody = {
+        messaging_product: 'whatsapp',
+        to: conversation.lead_phone,
+        type: 'image',
+        image: { link: mediaUrl, caption: caption || '' },
+      };
+    } else if (mediaUrl && mediaType === 'document') {
+      // Send document
+      const filename = mediaUrl.split('/').pop() || 'documento';
+      messageContent = `[📄 Documento: ${filename}]`;
+      waBody = {
+        messaging_product: 'whatsapp',
+        to: conversation.lead_phone,
+        type: 'document',
+        document: { link: mediaUrl, filename, caption: caption || '' },
+      };
+    } else {
+      // Text message
+      messageContent = text.trim();
+      waBody = {
+        messaging_product: 'whatsapp',
+        to: conversation.lead_phone,
+        type: 'text',
+        text: { body: text.trim() },
+      };
+    }
+
     // Save message to DB
     await supabase.from('messages').insert({
       conversation_id: params.id,
       role: 'assistant',
-      content: text.trim(),
+      content: messageContent,
       timestamp: new Date().toISOString(),
     });
 
@@ -39,27 +82,15 @@ export async function POST(
       .eq('id', params.id);
 
     // Send via WhatsApp
-    const waToken = process.env.WHATSAPP_ACCESS_TOKEN;
-    const waPhoneId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-
-    if (!waToken || !waPhoneId) {
-      return NextResponse.json({ error: 'WhatsApp no configurado' }, { status: 500 });
-    }
-
     const waRes = await fetch(
-      `https://graph.facebook.com/v20.0/${waPhoneId}/messages`,
+      `https://graph.facebook.com/v21.0/${waPhoneId}/messages`,
       {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${waToken}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: conversation.lead_phone,
-          type: 'text',
-          text: { body: text.trim() },
-        }),
+        body: JSON.stringify(waBody),
       }
     );
 

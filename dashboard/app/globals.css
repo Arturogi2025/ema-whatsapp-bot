@@ -135,9 +135,15 @@ h1, h2, h3, .font-display {
 
   main {
     margin-left: 0 !important;
+    padding-bottom: 70px !important;
   }
 
   .kpi-grid {
     grid-template-columns: 1fr !important;
+  }
+
+  /* Show mobile bottom nav */
+  .mobile-bottom-nav {
+    display: flex !important;
   }
 }

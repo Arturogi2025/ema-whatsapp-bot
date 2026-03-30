@@ -6,6 +6,7 @@ import ScrollToBottom from '@/components/ScrollToBottom';
 import TagManager from '@/components/TagManager';
 import InternalNotes from '@/components/InternalNotes';
 import SoundAlert from '@/components/SoundAlert';
+import AutoRefresh from '@/components/AutoRefresh';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -152,6 +153,9 @@ export default async function ConversationDetailPage({
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+      {/* Auto-refresh every 8 seconds for live conversation updates */}
+      <AutoRefresh intervalMs={8000} />
+
       {/* Chat panel */}
       <div
         style={{
