@@ -9,6 +9,7 @@ export interface Conversation {
   status: ConversationStatus;
   source: string;
   message_count: number;
+  ai_paused: boolean;
   created_at: string;
   updated_at: string;
 }

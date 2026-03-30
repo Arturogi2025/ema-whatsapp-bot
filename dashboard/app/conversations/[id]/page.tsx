@@ -1,5 +1,6 @@
 import { getConversation, getMessages, getLeadByConversation } from '@/lib/queries';
 import StatusBadge from '@/components/StatusBadge';
+import ConversationActions from './ConversationActions';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -231,6 +232,7 @@ export default async function ConversationDetailPage({
 
         {/* Messages */}
         <div
+          id="messages-scroll"
           style={{
             flex: 1,
             overflowY: 'auto',
@@ -275,6 +277,12 @@ export default async function ConversationDetailPage({
             ))
           )}
         </div>
+
+        {/* Reply box + AI toggle */}
+        <ConversationActions
+          conversationId={params.id}
+          initialAiPaused={(conversation as any).ai_paused ?? false}
+        />
       </div>
 
       {/* Info sidebar */}

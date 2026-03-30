@@ -62,12 +62,21 @@ export default async function handler(
     console.log(`[WhatsApp] Message from ${message.from}: "${message.text}"`);
     markAsRead(message.messageId).catch(() => {});
 
+    const { notifyNewLead, notifyCallScheduled } = require('../../lib/email');
+
     const conversation = await getOrCreateConversation(message.from, message.name);
     if (conversation.status === 'closed') {
       return res.status(200).json({ received: true });
     }
 
     await saveMessage(conversation.id, 'user', message.text);
+
+    // If AI is paused (manual mode), don't auto-respond
+    if (conversation.ai_paused) {
+      console.log(`[WhatsApp] AI paused for conversation ${conversation.id}, skipping AI response`);
+      return res.status(200).json({ received: true, ai_paused: true });
+    }
+
     const history = await getConversationHistory(conversation.id, 20);
 
     const aiResponse = await handleAIConversation(
@@ -97,19 +106,39 @@ export default async function handler(
       }
     }
 
-    if (aiResponse.detectedProjectType || aiResponse.intent === 'confirm_schedule') {
+    const isFirstProjectMention = aiResponse.detectedProjectType && conversation.message_count <= 3;
+    const isScheduleConfirmation = aiResponse.intent === 'confirm_schedule';
+
+    if (aiResponse.detectedProjectType || isScheduleConfirmation) {
       await upsertLead({
         conversationId: conversation.id,
         name: message.name || undefined,
         phone: message.from,
         projectType: aiResponse.detectedProjectType || undefined,
         preferredDatetime: aiResponse.detectedDatetime || undefined,
-        status: aiResponse.intent === 'confirm_schedule' ? 'scheduled' : 'contacted',
+        status: isScheduleConfirmation ? 'scheduled' : 'contacted',
       });
     }
 
-    if (aiResponse.intent === 'confirm_schedule' && aiResponse.detectedDatetime) {
+    if (isScheduleConfirmation && aiResponse.detectedDatetime) {
       await markAsScheduled(conversation.id, aiResponse.detectedDatetime);
+      // Notify about scheduled call
+      notifyCallScheduled({
+        name: message.name || conversation.lead_name,
+        phone: message.from,
+        datetime: aiResponse.detectedDatetime,
+        conversationId: conversation.id,
+      }).catch(() => {});
+    }
+
+    // Notify about new lead (first time project type is detected)
+    if (isFirstProjectMention) {
+      notifyNewLead({
+        name: message.name || conversation.lead_name,
+        phone: message.from,
+        projectType: aiResponse.detectedProjectType,
+        conversationId: conversation.id,
+      }).catch(() => {});
     }
 
     return res.status(200).json({ received: true });
