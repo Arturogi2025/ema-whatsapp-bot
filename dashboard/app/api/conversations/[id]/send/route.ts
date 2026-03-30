@@ -56,6 +56,33 @@ export async function POST(
         type: 'document',
         document: { link: mediaUrl, filename, caption: caption || '' },
       };
+    } else if (mediaUrl && mediaType === 'audio') {
+      // Send audio
+      messageContent = '[🎵 Audio enviado]';
+      waBody = {
+        messaging_product: 'whatsapp',
+        to: conversation.lead_phone,
+        type: 'audio',
+        audio: { link: mediaUrl },
+      };
+    } else if (mediaType === 'location') {
+      // Send location — expects body.latitude, body.longitude, body.locationName, body.locationAddress
+      const { latitude, longitude, locationName, locationAddress } = body;
+      if (!latitude || !longitude) {
+        return NextResponse.json({ error: 'Ubicación incompleta (lat/lng requeridos)' }, { status: 400 });
+      }
+      messageContent = `[📍 Ubicación: ${locationName || `${latitude}, ${longitude}`}]`;
+      waBody = {
+        messaging_product: 'whatsapp',
+        to: conversation.lead_phone,
+        type: 'location',
+        location: {
+          latitude: String(latitude),
+          longitude: String(longitude),
+          name: locationName || '',
+          address: locationAddress || '',
+        },
+      };
     } else {
       // Text message
       messageContent = text.trim();

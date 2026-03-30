@@ -48,7 +48,7 @@ export default async function ConversationsPage({ searchParams }: { searchParams
       </div>
 
       {/* Table */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div className="table-scroll-wrapper" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <ConversationsTable conversations={conversations} />
       </div>
     </div>

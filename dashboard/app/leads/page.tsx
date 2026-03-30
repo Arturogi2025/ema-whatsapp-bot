@@ -30,7 +30,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: { stat
       </div>
 
       {/* Mini KPIs */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
+      <div className="leads-kpi-row" style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
         {kpis.map(k => (
           <div key={k.label} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 18px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 10, flex: 1 }}>
             <div style={{ width: 32, height: 32, borderRadius: 8, background: `${k.color}18`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: k.color, flexShrink: 0 }}>
@@ -63,7 +63,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: { stat
       </div>
 
       {/* Table */}
-      <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div className="table-scroll-wrapper" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <LeadsTable
           leads={leads}
           emptyMessage={status === 'all'

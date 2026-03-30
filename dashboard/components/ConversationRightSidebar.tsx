@@ -19,13 +19,13 @@ export default function ConversationRightSidebar({
         style={{
           display: 'none', /* shown via CSS on <=1024px */
           position: 'fixed',
-          bottom: 80,
-          right: 16,
+          top: 14,
+          right: 14,
           alignItems: 'center',
           justifyContent: 'center',
-          width: 48,
-          height: 48,
-          borderRadius: 14,
+          width: 40,
+          height: 40,
+          borderRadius: 10,
           border: '1px solid var(--border)',
           background: '#F5C300',
           color: '#0a0a0a',
@@ -33,9 +33,9 @@ export default function ConversationRightSidebar({
           zIndex: 50,
           boxShadow: '0 4px 20px rgba(245, 195, 0, 0.35)',
         }}
-        title="Ver info"
+        title="Ver info del contacto"
       >
-        <Info size={20} />
+        <Info size={18} />
       </button>
 
       {/* Desktop: always visible sidebar */}

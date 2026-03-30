@@ -1,8 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, Bot, UserCheck, XCircle, RotateCcw, Image, FileText } from 'lucide-react';
+import {
+  Send, Bot, UserCheck, XCircle, RotateCcw,
+  Plus, Image, FileText, Mic, MapPin, X,
+  Paperclip,
+} from 'lucide-react';
 import QuickReplies from '@/components/QuickReplies';
 import AiSuggestions from '@/components/AiSuggestions';
 
@@ -11,6 +15,15 @@ interface ConversationActionsProps {
   initialAiPaused: boolean;
   conversationStatus?: string;
 }
+
+type MediaType = 'image' | 'document' | 'audio' | 'location';
+
+const MEDIA_OPTIONS: { type: MediaType; label: string; icon: any; color: string; accept?: string }[] = [
+  { type: 'image', label: 'Imagen', icon: Image, color: '#F5C300', accept: 'image/*' },
+  { type: 'document', label: 'Documento', icon: FileText, color: '#3b82f6', accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip' },
+  { type: 'audio', label: 'Audio', icon: Mic, color: '#22c55e', accept: 'audio/*' },
+  { type: 'location', label: 'Ubicacion', icon: MapPin, color: '#a855f7' },
+];
 
 export default function ConversationActions({
   conversationId,
@@ -25,38 +38,117 @@ export default function ConversationActions({
   const [sendError, setSendError] = useState('');
   const [status, setStatus] = useState(conversationStatus);
   const [changingStatus, setChangingStatus] = useState(false);
-  const [showMediaInput, setShowMediaInput] = useState(false);
+  const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [activeMedia, setActiveMedia] = useState<MediaType | null>(null);
   const [mediaUrl, setMediaUrl] = useState('');
-  const [mediaType, setMediaType] = useState<'image' | 'document'>('image');
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  async function uploadFile(file: File): Promise<string | null> {
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await fetch(`/api/conversations/${conversationId}/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.url;
+      }
+      return null;
+    } catch {
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function handleSend() {
-    if (sending) return;
+    if (sending || uploading) return;
 
-    // Media send
-    if (showMediaInput && mediaUrl.trim()) {
+    // File upload + send
+    if (selectedFile && activeMedia) {
       setSending(true);
       setSendError('');
+      const url = await uploadFile(selectedFile);
+      if (!url) {
+        setSendError('Error al subir archivo. Intenta con URL directa.');
+        setSending(false);
+        return;
+      }
       try {
         const res = await fetch(`/api/conversations/${conversationId}/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            mediaType,
-            mediaUrl: mediaUrl.trim(),
+            mediaType: activeMedia,
+            mediaUrl: url,
             caption: text.trim() || undefined,
           }),
         });
         if (res.ok) {
           setText('');
-          setMediaUrl('');
-          setShowMediaInput(false);
+          setSelectedFile(null);
+          setActiveMedia(null);
           router.refresh();
         } else {
           const data = await res.json();
           setSendError(data.error || 'Error al enviar');
         }
       } catch {
-        setSendError('Error de conexión');
+        setSendError('Error de conexion');
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
+    // URL-based media send
+    if (activeMedia && mediaUrl.trim()) {
+      setSending(true);
+      setSendError('');
+      try {
+        let body: any;
+        if (activeMedia === 'location') {
+          // Parse "lat,lng" or "lat, lng"
+          const parts = mediaUrl.trim().split(',').map(s => s.trim());
+          if (parts.length !== 2 || isNaN(Number(parts[0])) || isNaN(Number(parts[1]))) {
+            setSendError('Formato incorrecto. Usa: 19.4326,-99.1332');
+            setSending(false);
+            return;
+          }
+          body = {
+            mediaType: 'location',
+            latitude: Number(parts[0]),
+            longitude: Number(parts[1]),
+            locationName: text.trim() || undefined,
+          };
+        } else {
+          body = {
+            mediaType: activeMedia,
+            mediaUrl: mediaUrl.trim(),
+            caption: text.trim() || undefined,
+          };
+        }
+        const res = await fetch(`/api/conversations/${conversationId}/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          setText('');
+          setMediaUrl('');
+          setActiveMedia(null);
+          router.refresh();
+        } else {
+          const data = await res.json();
+          setSendError(data.error || 'Error al enviar');
+        }
+      } catch {
+        setSendError('Error de conexion');
       } finally {
         setSending(false);
       }
@@ -67,14 +159,12 @@ export default function ConversationActions({
     if (!text.trim()) return;
     setSending(true);
     setSendError('');
-
     try {
       const res = await fetch(`/api/conversations/${conversationId}/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: text.trim() }),
       });
-
       if (res.ok) {
         setText('');
         router.refresh();
@@ -83,7 +173,7 @@ export default function ConversationActions({
         setSendError(data.error || 'Error al enviar');
       }
     } catch {
-      setSendError('Error de conexión');
+      setSendError('Error de conexion');
     } finally {
       setSending(false);
     }
@@ -91,22 +181,17 @@ export default function ConversationActions({
 
   async function handleToggleAi() {
     setTogglingAi(true);
-    const newPaused = !aiPaused;
-
     try {
       const res = await fetch(`/api/conversations/${conversationId}/toggle-ai`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ai_paused: newPaused }),
+        body: JSON.stringify({ ai_paused: !aiPaused }),
       });
-
       if (res.ok) {
-        setAiPaused(newPaused);
+        setAiPaused(!aiPaused);
         router.refresh();
       }
-    } catch {
-      // silent fail
-    } finally {
+    } catch {} finally {
       setTogglingAi(false);
     }
   }
@@ -119,14 +204,11 @@ export default function ConversationActions({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus }),
       });
-
       if (res.ok) {
         setStatus(newStatus);
         router.refresh();
       }
-    } catch {
-      // silent fail
-    } finally {
+    } catch {} finally {
       setChangingStatus(false);
     }
   }
@@ -138,74 +220,58 @@ export default function ConversationActions({
     }
   }
 
+  function handleFileSelect(type: MediaType, accept?: string) {
+    setActiveMedia(type);
+    setShowAttachMenu(false);
+    if (accept && fileInputRef.current) {
+      fileInputRef.current.accept = accept;
+      fileInputRef.current.click();
+    }
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setMediaUrl(''); // clear URL if file selected
+    }
+    e.target.value = ''; // reset so same file can be re-selected
+  }
+
+  const canSend = text.trim() || (activeMedia && (mediaUrl.trim() || selectedFile));
+
   return (
-    <div
-      style={{
-        borderTop: '1px solid var(--border)',
-        background: 'var(--bg-surface)',
-        padding: '12px 16px',
-        flexShrink: 0,
-      }}
-    >
-      {/* AI toggle + status bar */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 10,
-          gap: 8,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          {aiPaused ? (
-            <UserCheck size={13} color="#f59e0b" />
-          ) : (
-            <Bot size={13} color="#22c55e" />
-          )}
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: aiPaused ? '#f59e0b' : '#22c55e',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-            }}
-          >
-            {aiPaused ? 'Modo manual activo' : 'IA respondiendo'}
+    <div style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-surface)', padding: '10px 16px', flexShrink: 0 }}>
+      {/* Hidden file input */}
+      <input ref={fileInputRef} type="file" style={{ display: 'none' }} onChange={handleFileChange} />
+
+      {/* Status bar */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          {aiPaused ? <UserCheck size={12} color="#f59e0b" /> : <Bot size={12} color="#22c55e" />}
+          <span style={{ fontSize: 10, fontWeight: 600, color: aiPaused ? '#f59e0b' : '#22c55e', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            {aiPaused ? 'Modo manual' : 'IA activa'}
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: 6 }}>
-          {/* Close/Reopen button */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+          {/* Close/Reopen — clearer labels */}
           <button
             onClick={() => handleStatusChange(status === 'closed' ? 'active' : 'closed')}
             disabled={changingStatus}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 10px',
-              borderRadius: 7,
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', borderRadius: 6,
               border: `1px solid ${status === 'closed' ? '#22c55e40' : '#ef444440'}`,
-              background: status === 'closed' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+              background: status === 'closed' ? 'rgba(34,197,94,0.08)' : 'rgba(239,68,68,0.08)',
               color: status === 'closed' ? '#22c55e' : '#ef4444',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: changingStatus ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
+              fontSize: 11, fontWeight: 600, cursor: changingStatus ? 'not-allowed' : 'pointer',
             }}
           >
             {status === 'closed' ? (
-              <>
-                <RotateCcw size={11} />
-                Reabrir
-              </>
+              <><RotateCcw size={10} /> Reabrir chat</>
             ) : (
-              <>
-                <XCircle size={11} />
-                Cerrar
-              </>
+              <><XCircle size={10} /> Finalizar conversacion</>
             )}
           </button>
 
@@ -214,207 +280,209 @@ export default function ConversationActions({
             onClick={handleToggleAi}
             disabled={togglingAi}
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              padding: '5px 10px',
-              borderRadius: 7,
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', borderRadius: 6,
               border: `1px solid ${aiPaused ? '#f59e0b40' : '#22c55e40'}`,
-              background: aiPaused ? 'rgba(245, 158, 11, 0.08)' : 'rgba(34, 197, 94, 0.08)',
+              background: aiPaused ? 'rgba(245,158,11,0.08)' : 'rgba(34,197,94,0.08)',
               color: aiPaused ? '#f59e0b' : '#22c55e',
-              fontSize: 11,
-              fontWeight: 600,
-              cursor: togglingAi ? 'not-allowed' : 'pointer',
-              transition: 'all 0.2s',
+              fontSize: 11, fontWeight: 600, cursor: togglingAi ? 'not-allowed' : 'pointer',
             }}
           >
-            {togglingAi ? '...' : aiPaused ? '▶ Reactivar IA' : '⏸ Pausar IA'}
+            {togglingAi ? '...' : aiPaused ? 'Reactivar IA' : 'Pausar IA'}
           </button>
         </div>
       </div>
 
-      {/* Quick replies + media buttons */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <QuickReplies onSelect={(t) => setText(t)} />
-        <div style={{ display: 'flex', gap: 4 }}>
-          <button
-            onClick={() => { setShowMediaInput(!showMediaInput); setMediaType('image'); }}
-            title="Enviar imagen (URL)"
-            style={{
-              padding: '4px 8px',
-              borderRadius: 6,
-              border: `1px solid ${showMediaInput && mediaType === 'image' ? '#F5C300' : 'var(--border)'}`,
-              background: showMediaInput && mediaType === 'image' ? 'rgba(245, 195, 0, 0.1)' : 'transparent',
-              color: showMediaInput && mediaType === 'image' ? '#F5C300' : 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-              fontSize: 11,
-            }}
-          >
-            <Image size={12} />
-          </button>
-          <button
-            onClick={() => { setShowMediaInput(!showMediaInput); setMediaType('document'); }}
-            title="Enviar documento (URL)"
-            style={{
-              padding: '4px 8px',
-              borderRadius: 6,
-              border: `1px solid ${showMediaInput && mediaType === 'document' ? '#3b82f6' : 'var(--border)'}`,
-              background: showMediaInput && mediaType === 'document' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-              color: showMediaInput && mediaType === 'document' ? '#3b82f6' : 'var(--text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-              fontSize: 11,
-            }}
-          >
-            <FileText size={12} />
-          </button>
-        </div>
-      </div>
+      {/* Quick replies */}
+      <QuickReplies onSelect={(t) => setText(t)} />
 
-      {/* Media URL input */}
-      {showMediaInput && (
-        <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
-          <div style={{
-            padding: '3px 8px',
-            borderRadius: 5,
-            background: mediaType === 'image' ? 'rgba(245, 195, 0, 0.1)' : 'rgba(59, 130, 246, 0.1)',
-            color: mediaType === 'image' ? '#F5C300' : '#3b82f6',
-            fontSize: 10,
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            flexShrink: 0,
-          }}>
-            {mediaType === 'image' ? '📷 Imagen' : '📄 Doc'}
+      {/* Selected file / media preview */}
+      {activeMedia && (selectedFile || mediaUrl) && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8,
+          padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: 8,
+          border: '1px solid var(--border)',
+        }}>
+          <Paperclip size={13} color="var(--text-muted)" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: '#F5C300', textTransform: 'uppercase' }}>
+              {activeMedia === 'image' ? 'Imagen' : activeMedia === 'document' ? 'Documento' : activeMedia === 'audio' ? 'Audio' : 'Ubicacion'}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {selectedFile ? selectedFile.name : mediaUrl}
+            </div>
           </div>
-          <input
-            value={mediaUrl}
-            onChange={(e) => setMediaUrl(e.target.value)}
-            placeholder={mediaType === 'image' ? 'URL de la imagen (https://...)' : 'URL del documento (https://...)'}
-            style={{
-              flex: 1,
-              padding: '6px 10px',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border)',
-              borderRadius: 7,
-              color: 'var(--text-primary)',
-              fontSize: 12,
-              outline: 'none',
-              fontFamily: 'inherit',
-            }}
-          />
           <button
-            onClick={() => { setShowMediaInput(false); setMediaUrl(''); }}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: 'var(--text-muted)',
-              cursor: 'pointer',
-              fontSize: 11,
-            }}
+            onClick={() => { setActiveMedia(null); setSelectedFile(null); setMediaUrl(''); }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
           >
-            Cancelar
+            <X size={14} color="var(--text-muted)" />
           </button>
         </div>
       )}
 
-      {/* Dynamic AI Suggestions - clickable pills above the textarea */}
+      {/* URL input for media (when no file selected) */}
+      {activeMedia && !selectedFile && (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+          <input
+            value={mediaUrl}
+            onChange={(e) => setMediaUrl(e.target.value)}
+            placeholder={
+              activeMedia === 'location'
+                ? 'Coordenadas: 19.4326,-99.1332'
+                : `URL del ${activeMedia === 'image' ? 'imagen' : activeMedia === 'audio' ? 'audio' : 'documento'} (https://...)`
+            }
+            style={{
+              flex: 1, padding: '7px 10px', background: 'var(--bg-elevated)',
+              border: '1px solid var(--border)', borderRadius: 7,
+              color: 'var(--text-primary)', fontSize: 12, outline: 'none', fontFamily: 'inherit',
+            }}
+          />
+          <span style={{ fontSize: 10, color: 'var(--text-muted)' }}>o</span>
+          {activeMedia !== 'location' && (
+            <button
+              onClick={() => {
+                const opt = MEDIA_OPTIONS.find(o => o.type === activeMedia);
+                if (opt?.accept && fileInputRef.current) {
+                  fileInputRef.current.accept = opt.accept;
+                  fileInputRef.current.click();
+                }
+              }}
+              style={{
+                padding: '6px 12px', borderRadius: 7,
+                border: '1px solid var(--border)', background: 'var(--bg-elevated)',
+                color: 'var(--text-secondary)', fontSize: 11, cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Subir archivo
+            </button>
+          )}
+          <button
+            onClick={() => { setActiveMedia(null); setMediaUrl(''); }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: 2 }}
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* Dynamic AI Suggestions */}
       <AiSuggestions conversationId={conversationId} onSelect={(msg) => setText(msg)} />
 
       {/* Reply box */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 10,
-          alignItems: 'flex-end',
-        }}
-      >
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        {/* Attach button (+) */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setShowAttachMenu(!showAttachMenu)}
+            style={{
+              width: 40, height: 40, borderRadius: 10,
+              border: '1px solid var(--border)',
+              background: showAttachMenu ? 'rgba(245,195,0,0.1)' : 'var(--bg-elevated)',
+              color: showAttachMenu ? '#F5C300' : 'var(--text-muted)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', transition: 'all 0.15s', flexShrink: 0,
+            }}
+            title="Adjuntar archivo"
+          >
+            <Plus size={18} style={{ transform: showAttachMenu ? 'rotate(45deg)' : 'none', transition: 'transform 0.2s' }} />
+          </button>
+
+          {/* Attachment popup menu */}
+          {showAttachMenu && (
+            <div style={{
+              position: 'absolute', bottom: '100%', left: 0, marginBottom: 6,
+              background: 'var(--bg-surface)', border: '1px solid var(--border)',
+              borderRadius: 10, padding: 6, minWidth: 160,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 20,
+            }}>
+              {MEDIA_OPTIONS.map(({ type, label, icon: Icon, color, accept }) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    if (type === 'location') {
+                      setActiveMedia('location');
+                      setShowAttachMenu(false);
+                    } else {
+                      handleFileSelect(type, accept);
+                    }
+                  }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                    padding: '8px 12px', background: 'transparent', border: 'none',
+                    borderRadius: 7, cursor: 'pointer', transition: 'background 0.1s',
+                    color: 'var(--text-secondary)', fontSize: 13,
+                  }}
+                  onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)')}
+                  onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
+                >
+                  <div style={{
+                    width: 28, height: 28, borderRadius: 7,
+                    background: `${color}15`, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <Icon size={14} color={color} />
+                  </div>
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Textarea */}
         <div style={{ flex: 1, position: 'relative' }}>
           <textarea
             value={text}
             onChange={e => setText(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Escribe un mensaje manual... (Enter para enviar, Shift+Enter para nueva línea)"
+            placeholder={activeMedia ? 'Agregar texto o caption (opcional)...' : 'Escribe un mensaje... (Enter para enviar)'}
             rows={2}
             style={{
-              width: '100%',
-              padding: '10px 14px',
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
-              color: 'var(--text-primary)',
-              fontSize: 14,
-              resize: 'none',
-              outline: 'none',
-              lineHeight: 1.5,
-              transition: 'border-color 0.2s',
-              fontFamily: 'inherit',
+              width: '100%', padding: '10px 14px',
+              background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+              borderRadius: 10, color: 'var(--text-primary)', fontSize: 14,
+              resize: 'none', outline: 'none', lineHeight: 1.5,
+              transition: 'border-color 0.2s', fontFamily: 'inherit',
             }}
             onFocus={e => ((e.target as HTMLTextAreaElement).style.borderColor = '#F5C300')}
             onBlur={e => ((e.target as HTMLTextAreaElement).style.borderColor = 'var(--border)')}
           />
           {sendError && (
-            <div style={{ fontSize: 11, color: '#ef4444', marginTop: 4 }}>
-              ⚠ {sendError}
+            <div style={{ fontSize: 11, color: '#ef4444', marginTop: 3 }}>
+              {sendError}
             </div>
           )}
         </div>
 
+        {/* Send button */}
         <button
           onClick={handleSend}
-          disabled={sending || (!text.trim() && !(showMediaInput && mediaUrl.trim()))}
+          disabled={sending || uploading || !canSend}
           style={{
-            width: 44,
-            height: 44,
-            borderRadius: 10,
-            border: 'none',
-            background:
-              sending || (!text.trim() && !(showMediaInput && mediaUrl.trim()))
-                ? 'var(--bg-elevated)'
-                : 'linear-gradient(135deg, #F5C300, #F5C300)',
-            color: sending || (!text.trim() && !(showMediaInput && mediaUrl.trim())) ? 'var(--text-muted)' : 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: sending || (!text.trim() && !(showMediaInput && mediaUrl.trim())) ? 'not-allowed' : 'pointer',
-            flexShrink: 0,
-            transition: 'all 0.2s',
-            boxShadow:
-              sending || (!text.trim() && !(showMediaInput && mediaUrl.trim()))
-                ? 'none'
-                : '0 4px 16px rgba(245, 195, 0, 0.4)',
+            width: 44, height: 44, borderRadius: 10, border: 'none',
+            background: !canSend || sending ? 'var(--bg-elevated)' : '#F5C300',
+            color: !canSend || sending ? 'var(--text-muted)' : '#0a0a0a',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: !canSend || sending ? 'not-allowed' : 'pointer',
+            flexShrink: 0, transition: 'all 0.2s',
+            boxShadow: canSend && !sending ? '0 4px 16px rgba(245,195,0,0.4)' : 'none',
           }}
         >
-          {sending ? (
-            <div
-              style={{
-                width: 14,
-                height: 14,
-                border: '2px solid var(--text-muted)',
-                borderTopColor: 'transparent',
-                borderRadius: '50%',
-                animation: 'spin 0.6s linear infinite',
-              }}
-            />
+          {sending || uploading ? (
+            <div style={{
+              width: 14, height: 14, border: '2px solid var(--text-muted)',
+              borderTopColor: 'transparent', borderRadius: '50%',
+              animation: 'spin 0.6s linear infinite',
+            }} />
           ) : (
             <Send size={16} />
           )}
         </button>
       </div>
 
-      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, textAlign: 'right' }}>
-        Este mensaje se enviará directamente por WhatsApp desde el número de Bolt
-      </div>
-
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

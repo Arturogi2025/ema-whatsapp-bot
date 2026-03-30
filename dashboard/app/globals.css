@@ -169,6 +169,13 @@ h1, h2, h3, .font-display {
     gap: 0 !important;
   }
 
+  /* Charts row — stack on tablet */
+  .kpi-flex-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
   /* Hide conversation desktop sidebar, show toggle + drawer */
   .conversation-sidebar-desktop {
     display: none !important;
@@ -208,14 +215,33 @@ h1, h2, h3, .font-display {
     padding-bottom: 64px !important;
   }
 
-  /* Full width tables */
-  table {
-    font-size: 13px;
+  /* Horizontal scrollable tables on mobile */
+  .table-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
-  /* Stack KPI cards */
+  table {
+    font-size: 12px;
+    min-width: 600px;
+  }
+
+  /* Stack KPI cards in 2 cols */
   .kpi-grid {
     grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Overview page padding */
+  .overview-page {
+    padding: 16px !important;
+  }
+
+  /* Charts row — stack vertically on mobile */
+  .kpi-flex-row {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
 
   /* Conversation page adjustments */
@@ -235,6 +261,23 @@ h1, h2, h3, .font-display {
   .conversation-detail {
     height: calc(100vh - 64px) !important;
   }
+
+  /* Chat header compact on mobile */
+  .chat-header {
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    padding: 12px !important;
+  }
+
+  /* Leads page KPI row */
+  .leads-kpi-row {
+    flex-wrap: wrap !important;
+  }
+
+  .leads-kpi-row > div {
+    flex: 1 1 calc(50% - 6px) !important;
+    min-width: 140px !important;
+  }
 }
 
 /* Small mobile (< 480px) */
@@ -252,13 +295,21 @@ h1, h2, h3, .font-display {
     grid-template-columns: 1fr !important;
   }
 
+  .leads-kpi-row > div {
+    flex: 1 1 100% !important;
+  }
+
   /* Show mobile bottom nav */
   .mobile-bottom-nav {
     display: flex !important;
   }
 
-  /* Adjust floating toggle position above bottom nav */
+  /* Adjust floating toggle — top right corner, not blocking send */
   .right-sidebar-toggle {
-    bottom: 80px !important;
+    top: 12px !important;
+    right: 12px !important;
+    bottom: auto !important;
+    width: 40px !important;
+    height: 40px !important;
   }
 }

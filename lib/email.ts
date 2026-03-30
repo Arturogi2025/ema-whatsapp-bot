@@ -1,7 +1,9 @@
 // Email notifications via Resend API
 // Requires RESEND_API_KEY env var
 
-const FROM_EMAIL = 'notificaciones@boltdevlabs.com';
+// Use Resend's default sender until boltdevlabs.com domain is verified in Resend
+// Once verified, change back to: 'notificaciones@boltdevlabs.com'
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 const TO_EMAIL = 'hola@boltdevlabs.com';
 const RESEND_API = 'https://api.resend.com/emails';
 

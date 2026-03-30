@@ -298,6 +298,7 @@ export default async function ConversationDetailPage({
       >
         {/* Chat header */}
         <div
+          className="chat-header"
           style={{
             padding: '16px 20px',
             borderBottom: '1px solid var(--border)',
@@ -355,6 +356,7 @@ export default async function ConversationDetailPage({
           <StatusBadge status={conversation.status} />
 
           <div
+            className="msg-count-badge"
             style={{
               display: 'flex',
               alignItems: 'center',

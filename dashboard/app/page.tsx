@@ -65,7 +65,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
   const PROJECT_COLORS = ['#F5C300', '#22c55e', '#f59e0b', '#60a5fa', '#f472b6'];
 
   return (
-    <div style={{ padding: '32px 32px', maxWidth: 1280 }}>
+    <div className="overview-page" style={{ padding: '32px 32px', maxWidth: 1280 }}>
       {/* Auto-refresh every 15 seconds for live dashboard updates */}
       <AutoRefresh intervalMs={15000} />
       {/* Header */}
@@ -143,7 +143,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
       </div>
 
       {/* Charts row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 16, marginBottom: 24 }}>
+      <div className="kpi-flex-row" style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 16, marginBottom: 24 }}>
         {/* Activity */}
         <Card>
           <CardHeader title="Actividad" sub={`Conversaciones y mensajes — últimos ${days} días`} />
