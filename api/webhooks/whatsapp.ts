@@ -24,10 +24,10 @@ export default async function handler(
   }
 
   try {
-    const { parseWebhookPayload, verifyWebhookSignature, sendTextMessage, sendImageMessage, markAsRead } = require('../lib/whatsapp');
-    const { getOrCreateConversation, getConversationHistory, saveMessage, upsertLead, markAsScheduled } = require('../lib/conversation');
-    const { handleAIConversation } = require('../lib/ai-handler');
-    const { getRelevantExamples } = require('../lib/portfolio');
+    const { parseWebhookPayload, verifyWebhookSignature, sendTextMessage, sendImageMessage, markAsRead } = require('../../lib/whatsapp');
+    const { getOrCreateConversation, getConversationHistory, saveMessage, upsertLead, markAsScheduled } = require('../../lib/conversation');
+    const { handleAIConversation } = require('../../lib/ai-handler');
+    const { getRelevantExamples } = require('../../lib/portfolio');
 
     const rawBody = JSON.stringify(req.body);
     if (!verifyWebhookSignature(req, rawBody)) {
