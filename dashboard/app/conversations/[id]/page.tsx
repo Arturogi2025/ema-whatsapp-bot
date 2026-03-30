@@ -13,8 +13,7 @@ import {
   Bot,
   Clock,
 } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { fmtMX } from '@/lib/tz';
 
 export const revalidate = 10;
 
@@ -93,7 +92,7 @@ function MessageBubble({
             textAlign: isUser ? 'left' : 'right',
           }}
         >
-          {format(new Date(timestamp), 'HH:mm', { locale: es })}
+          {fmtMX(timestamp, 'HH:mm')}
         </div>
       </div>
     </div>
@@ -137,7 +136,7 @@ export default async function ConversationDetailPage({
   // Group messages by date
   const messagesByDate: Record<string, typeof messages> = {};
   for (const msg of messages.filter(m => m.role !== 'system')) {
-    const dateKey = format(new Date(msg.timestamp), 'yyyy-MM-dd');
+    const dateKey = fmtMX(msg.timestamp, 'yyyy-MM-dd');
     if (!messagesByDate[dateKey]) messagesByDate[dateKey] = [];
     messagesByDate[dateKey].push(msg);
   }
@@ -260,7 +259,7 @@ export default async function ConversationDetailPage({
                 >
                   <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                   <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 500 }}>
-                    {format(new Date(date), "EEEE d 'de' MMMM", { locale: es })}
+                    {fmtMX(date, "EEEE d 'de' MMMM")}
                   </span>
                   <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                 </div>
@@ -305,7 +304,7 @@ export default async function ConversationDetailPage({
         <InfoRow
           icon={<Clock size={14} />}
           label="Iniciada"
-          value={format(new Date(conversation.created_at), "d MMM yyyy 'a las' HH:mm", { locale: es })}
+          value={fmtMX(conversation.created_at, "d MMM yyyy 'a las' HH:mm")}
         />
 
         {/* Lead info */}

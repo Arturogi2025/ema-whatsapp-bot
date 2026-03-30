@@ -3,8 +3,7 @@
 import { useRouter } from 'next/navigation';
 import StatusBadge from './StatusBadge';
 import { Phone, Briefcase, Calendar, Target } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { fmtMX } from '@/lib/tz';
 import type { Lead } from '@/lib/types';
 
 const PROJECT_TYPE_LABELS: Record<string, string> = {
@@ -88,7 +87,7 @@ export default function LeadsTable({ leads, emptyMessage }: { leads: Lead[]; emp
             <td style={{ padding: '14px 20px' }}><StatusBadge status={lead.status} /></td>
             <td style={{ padding: '14px 20px' }}>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {format(new Date(lead.created_at), 'd MMM yyyy', { locale: es })}
+                {fmtMX(lead.created_at, 'd MMM yyyy')}
               </span>
             </td>
           </tr>

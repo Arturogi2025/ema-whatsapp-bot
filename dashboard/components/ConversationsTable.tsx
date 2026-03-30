@@ -5,6 +5,7 @@ import StatusBadge from './StatusBadge';
 import { MessageSquare, Clock, Phone } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { fmtMX } from '@/lib/tz';
 import type { Conversation } from '@/lib/types';
 
 export default function ConversationsTable({ conversations }: { conversations: Conversation[] }) {
@@ -68,7 +69,7 @@ export default function ConversationsTable({ conversations }: { conversations: C
             </td>
             <td style={{ padding: '14px 20px' }}>
               <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                {new Date(conv.created_at).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' })}
+                {fmtMX(conv.created_at, 'd MMM')}
               </span>
             </td>
             <td style={{ padding: '14px 20px' }}>

@@ -4,8 +4,7 @@ import ActivityChart from '@/components/charts/ActivityChart';
 import StatusDonut from '@/components/charts/StatusDonut';
 import RecentConversationsTable from '@/components/RecentConversationsTable';
 import { MessageSquare, Users, CalendarCheck, Zap } from 'lucide-react';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { fmtMX } from '@/lib/tz';
 import Link from 'next/link';
 
 export const revalidate = 30; // revalidate every 30 seconds
@@ -76,7 +75,7 @@ export default async function OverviewPage() {
           Overview
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
-          {format(new Date(), "EEEE d 'de' MMMM, yyyy", { locale: es })}
+          {fmtMX(new Date(), "EEEE d 'de' MMMM, yyyy")}
         </p>
       </div>
 
