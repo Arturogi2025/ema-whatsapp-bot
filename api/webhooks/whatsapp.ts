@@ -1,8 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { parseWebhookPayload, verifyWebhookSignature, sendTextMessage, sendImageMessage, markAsRead } from '../lib/whatsapp';
-import { getOrCreateConversation, getConversationHistory, saveMessage, upsertLead, markAsScheduled } from '../lib/conversation';
-import { handleAIConversation } from '../lib/ai-handler';
-import { getRelevantExamples } from '../lib/portfolio';
 
 /**
  * WhatsApp Business Cloud API Webhook
@@ -33,8 +29,12 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Always respond 200 quickly to Meta (they retry on timeouts)
-  // We process in the same request but catch all errors
+  // Dynamic imports to keep GET handler lightweight
+  const { parseWebhookPayload, verifyWebhookSignature, sendTextMessage, sendImageMessage, markAsRead } = await import('../lib/whatsapp');
+  const { getOrCreateConversation, getConversationHistory, saveMessage, upsertLead, markAsScheduled } = await import('../lib/conversation');
+  const { handleAIConversation } = await import('../lib/ai-handler');
+  const { getRelevantExamples } = await import('../lib/portfolio');
+
   try {
     // Verify signature
     const rawBody = JSON.stringify(req.body);
@@ -130,7 +130,6 @@ export default async function handler(
     return res.status(200).json({ received: true });
   } catch (error) {
     console.error('[WhatsApp] Error processing message:', error);
-    // Still return 200 to prevent Meta from retrying
     return res.status(200).json({ received: true, error: 'Processing failed' });
   }
 }
