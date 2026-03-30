@@ -59,17 +59,29 @@ export default async function handler(
       return res.status(200).json({ received: true });
     }
 
-    console.log(`[WhatsApp] Message from ${message.from}: "${message.text}"`);
+    console.log(`[WhatsApp] Message from ${message.from} (${message.mediaType}): "${message.text}"`);
     markAsRead(message.messageId).catch(() => {});
 
     const { notifyNewLead, notifyCallScheduled } = require('../../lib/email');
 
     const conversation = await getOrCreateConversation(message.from, message.name);
+
+    // If conversation was closed, reopen it on new message
     if (conversation.status === 'closed') {
-      return res.status(200).json({ received: true });
+      const { createClient } = require('@supabase/supabase-js');
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
+      );
+      await supabase
+        .from('conversations')
+        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .eq('id', conversation.id);
     }
 
-    await saveMessage(conversation.id, 'user', message.text);
+    // Build the text to save — for media, include type indicator
+    const textToSave = message.text;
+    await saveMessage(conversation.id, 'user', textToSave);
 
     // If AI is paused (manual mode), don't auto-respond
     if (conversation.ai_paused) {
@@ -77,10 +89,31 @@ export default async function handler(
       return res.status(200).json({ received: true, ai_paused: true });
     }
 
+    // For reactions and some media, skip AI response
+    if (message.mediaType === 'reaction') {
+      return res.status(200).json({ received: true });
+    }
+
     const history = await getConversationHistory(conversation.id, 20);
 
+    // Build context-aware prompt for media messages
+    let aiPromptText = message.text;
+    if (message.mediaType !== 'text') {
+      // Give AI context about what was sent
+      const mediaContextMap: Record<string, string> = {
+        image: 'El usuario envió una imagen' + (message.mediaCaption ? ` con el texto: "${message.mediaCaption}"` : '. No puedes ver la imagen pero responde amablemente.'),
+        audio: 'El usuario envió un mensaje de voz. No puedes escucharlo pero responde amablemente pidiendo que te escriba su mensaje.',
+        video: 'El usuario envió un video' + (message.mediaCaption ? ` con el texto: "${message.mediaCaption}"` : '. Responde amablemente.'),
+        sticker: 'El usuario envió un sticker/emoji. Responde de manera amigable y continúa la conversación.',
+        document: `El usuario envió un documento${message.mediaFilename ? ` llamado "${message.mediaFilename}"` : ''}. Acusa recibido y continúa la conversación.`,
+        location: `El usuario compartió su ubicación: ${message.locationName || 'una ubicación'}. Agradece y continúa la conversación.`,
+        contacts: 'El usuario compartió un contacto. Agradece y continúa la conversación.',
+      };
+      aiPromptText = mediaContextMap[message.mediaType] || message.text;
+    }
+
     const aiResponse = await handleAIConversation(
-      message.text,
+      aiPromptText,
       history.filter((m: any) => m.role !== 'system'),
       conversation.message_count
     );

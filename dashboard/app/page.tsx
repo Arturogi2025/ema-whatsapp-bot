@@ -1,13 +1,13 @@
-import { getStats, getDailyActivity, getConversations, getProjectTypeCounts } from '@/lib/queries';
+import { getStats, getDailyActivity, getConversationsWithPreview, getProjectTypeCounts, getCityDistribution, getAvgResponseTime } from '@/lib/queries';
 import KpiCard from '@/components/KpiCard';
 import ActivityChart from '@/components/charts/ActivityChart';
 import StatusDonut from '@/components/charts/StatusDonut';
 import RecentConversationsTable from '@/components/RecentConversationsTable';
-import { MessageSquare, Users, CalendarCheck, Zap } from 'lucide-react';
+import { MessageSquare, Users, CalendarCheck, Zap, MapPin, Clock, TrendingUp } from 'lucide-react';
 import { fmtMX } from '@/lib/tz';
 import Link from 'next/link';
 
-export const revalidate = 30; // revalidate every 30 seconds
+export const dynamic = 'force-dynamic';
 
 function Card({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) {
   return (
@@ -33,12 +33,16 @@ function CardHeader({ title, sub }: { title: string; sub?: string }) {
   );
 }
 
+const CITY_COLORS = ['#F5C300', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7', '#60a5fa', '#f472b6'];
+
 export default async function OverviewPage() {
-  const [stats, activity, conversations, projectTypes] = await Promise.all([
+  const [stats, activity, conversations, projectTypes, cityDist, avgResponseTime] = await Promise.all([
     getStats(),
     getDailyActivity(14),
-    getConversations(),
+    getConversationsWithPreview(),
     getProjectTypeCounts(),
+    getCityDistribution(),
+    getAvgResponseTime(),
   ]);
 
   const recent = conversations.slice(0, 8);
@@ -81,6 +85,7 @@ export default async function OverviewPage() {
 
       {/* KPI Grid */}
       <div
+        className="kpi-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
@@ -116,6 +121,15 @@ export default async function OverviewPage() {
           accent="#f59e0b"
           icon={<Users size={16} />}
         />
+        {avgResponseTime !== null && (
+          <KpiCard
+            label="Tiempo de respuesta"
+            value={avgResponseTime < 1 ? `${Math.round(avgResponseTime * 60)}s` : `${avgResponseTime}m`}
+            sub="Promedio primera respuesta"
+            accent="#3b82f6"
+            icon={<Clock size={16} />}
+          />
+        )}
       </div>
 
       {/* Charts row */}
@@ -146,40 +160,69 @@ export default async function OverviewPage() {
           </div>
         </Card>
 
-        {/* Status donut */}
-        <Card>
-          <CardHeader title="Estado de conversaciones" />
-          <div style={{ padding: '24px' }}>
-            <StatusDonut data={statusData} />
-          </div>
-
-          {/* Project types */}
-          {projectTypes.length > 0 && (
-            <div
-              style={{
-                borderTop: '1px solid var(--border)',
-                padding: '16px 24px',
-              }}
-            >
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Por tipo de proyecto
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {projectTypes.slice(0, 4).map((pt, i) => (
-                  <div key={pt.project_type} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <div style={{ width: 8, height: 8, borderRadius: 2, background: PROJECT_COLORS[i % PROJECT_COLORS.length], flexShrink: 0 }} />
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, textTransform: 'capitalize' }}>
-                      {pt.project_type}
-                    </span>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                      {pt.count}
-                    </span>
-                  </div>
-                ))}
-              </div>
+        {/* Status donut + project types + cities */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <Card>
+            <CardHeader title="Estado de conversaciones" />
+            <div style={{ padding: '24px' }}>
+              <StatusDonut data={statusData} />
             </div>
+
+            {/* Project types */}
+            {projectTypes.length > 0 && (
+              <div
+                style={{
+                  borderTop: '1px solid var(--border)',
+                  padding: '16px 24px',
+                }}
+              >
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Por tipo de proyecto
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {projectTypes.slice(0, 4).map((pt, i) => (
+                    <div key={pt.project_type} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 2, background: PROJECT_COLORS[i % PROJECT_COLORS.length], flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1, textTransform: 'capitalize' }}>
+                        {pt.project_type}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {pt.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+
+          {/* City distribution */}
+          {cityDist.length > 0 && (
+            <Card>
+              <div style={{ padding: '16px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+                  <MapPin size={14} color="var(--text-muted)" />
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Leads por ciudad
+                  </span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {cityDist.slice(0, 6).map((c, i) => (
+                    <div key={c.city} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: CITY_COLORS[i % CITY_COLORS.length], flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', flex: 1 }}>
+                        {c.city}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {c.count}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
           )}
-        </Card>
+        </div>
       </div>
 
       {/* Recent conversations */}

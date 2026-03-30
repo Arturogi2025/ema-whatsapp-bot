@@ -3,12 +3,22 @@ import type { VercelRequest } from '@vercel/node';
 
 const WHATSAPP_API_URL = 'https://graph.facebook.com/v21.0';
 
+export type MediaType = 'text' | 'image' | 'audio' | 'video' | 'sticker' | 'document' | 'location' | 'contacts' | 'reaction' | 'unknown';
+
 interface WhatsAppMessage {
   from: string;
   name: string;
   text: string;
   messageId: string;
   timestamp: string;
+  mediaType: MediaType;
+  mediaId?: string;
+  mediaCaption?: string;
+  mediaMimeType?: string;
+  mediaFilename?: string;
+  locationLatitude?: number;
+  locationLongitude?: number;
+  locationName?: string;
 }
 
 interface WhatsAppWebhookEntry {
@@ -23,6 +33,14 @@ interface WhatsAppWebhookEntry {
         timestamp: string;
         type: string;
         text?: { body: string };
+        image?: { id: string; mime_type: string; caption?: string };
+        audio?: { id: string; mime_type: string };
+        video?: { id: string; mime_type: string; caption?: string };
+        sticker?: { id: string; mime_type: string };
+        document?: { id: string; mime_type: string; filename?: string; caption?: string };
+        location?: { latitude: number; longitude: number; name?: string; address?: string };
+        contacts?: Array<{ name: { formatted_name: string }; phones?: Array<{ phone: string }> }>;
+        reaction?: { message_id: string; emoji: string };
       }>;
       statuses?: Array<{
         id: string;
@@ -34,9 +52,29 @@ interface WhatsAppWebhookEntry {
   }>;
 }
 
+const MEDIA_LABELS: Record<MediaType, string> = {
+  text: '',
+  image: '📷 Imagen',
+  audio: '🎤 Audio',
+  video: '🎬 Video',
+  sticker: '🏷️ Sticker',
+  document: '📄 Documento',
+  location: '📍 Ubicación',
+  contacts: '👤 Contacto',
+  reaction: '😀 Reacción',
+  unknown: '📎 Archivo',
+};
+
+/**
+ * Get a human-readable label for a media type
+ */
+export function getMediaLabel(type: MediaType): string {
+  return MEDIA_LABELS[type] || MEDIA_LABELS.unknown;
+}
+
 /**
  * Parse incoming WhatsApp webhook payload.
- * Returns null for status updates or non-text messages.
+ * Now handles all message types, not just text.
  */
 export function parseWebhookPayload(body: any): WhatsAppMessage | null {
   if (body?.object !== 'whatsapp_business_account') return null;
@@ -51,17 +89,119 @@ export function parseWebhookPayload(body: any): WhatsAppMessage | null {
   if (!messages || messages.length === 0) return null;
 
   const msg = messages[0];
+  const contactName = contacts?.[0]?.profile?.name || '';
 
-  // Only handle text messages for now
-  if (msg.type !== 'text' || !msg.text?.body) return null;
-
-  return {
+  const base = {
     from: msg.from,
-    name: contacts?.[0]?.profile?.name || '',
-    text: msg.text.body,
+    name: contactName,
     messageId: msg.id,
     timestamp: msg.timestamp,
   };
+
+  switch (msg.type) {
+    case 'text':
+      if (!msg.text?.body) return null;
+      return { ...base, text: msg.text.body, mediaType: 'text' };
+
+    case 'image':
+      return {
+        ...base,
+        text: msg.image?.caption || '[📷 Imagen]',
+        mediaType: 'image',
+        mediaId: msg.image?.id,
+        mediaCaption: msg.image?.caption,
+        mediaMimeType: msg.image?.mime_type,
+      };
+
+    case 'audio':
+      return {
+        ...base,
+        text: '[🎤 Audio]',
+        mediaType: 'audio',
+        mediaId: msg.audio?.id,
+        mediaMimeType: msg.audio?.mime_type,
+      };
+
+    case 'video':
+      return {
+        ...base,
+        text: msg.video?.caption || '[🎬 Video]',
+        mediaType: 'video',
+        mediaId: msg.video?.id,
+        mediaCaption: msg.video?.caption,
+        mediaMimeType: msg.video?.mime_type,
+      };
+
+    case 'sticker':
+      return {
+        ...base,
+        text: '[🏷️ Sticker]',
+        mediaType: 'sticker',
+        mediaId: msg.sticker?.id,
+        mediaMimeType: msg.sticker?.mime_type,
+      };
+
+    case 'document':
+      return {
+        ...base,
+        text: msg.document?.caption || `[📄 ${msg.document?.filename || 'Documento'}]`,
+        mediaType: 'document',
+        mediaId: msg.document?.id,
+        mediaCaption: msg.document?.caption,
+        mediaMimeType: msg.document?.mime_type,
+        mediaFilename: msg.document?.filename,
+      };
+
+    case 'location':
+      return {
+        ...base,
+        text: `[📍 Ubicación: ${msg.location?.name || msg.location?.address || `${msg.location?.latitude}, ${msg.location?.longitude}`}]`,
+        mediaType: 'location',
+        locationLatitude: msg.location?.latitude,
+        locationLongitude: msg.location?.longitude,
+        locationName: msg.location?.name || msg.location?.address,
+      };
+
+    case 'contacts':
+      const contactInfo = msg.contacts?.[0];
+      return {
+        ...base,
+        text: `[👤 Contacto: ${contactInfo?.name?.formatted_name || 'Sin nombre'}${contactInfo?.phones?.[0]?.phone ? ' - ' + contactInfo.phones[0].phone : ''}]`,
+        mediaType: 'contacts',
+      };
+
+    case 'reaction':
+      return {
+        ...base,
+        text: `[${msg.reaction?.emoji || '😀'} Reacción]`,
+        mediaType: 'reaction',
+      };
+
+    default:
+      // Handle unknown types gracefully
+      return {
+        ...base,
+        text: `[📎 ${msg.type || 'Mensaje'}]`,
+        mediaType: 'unknown',
+      };
+  }
+}
+
+/**
+ * Get the download URL for a media file
+ */
+export async function getMediaUrl(mediaId: string): Promise<string | null> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  try {
+    const res = await fetch(`${WHATSAPP_API_URL}/${mediaId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.url || null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -120,7 +260,6 @@ export async function sendTextMessage(to: string, text: string): Promise<void> {
 
 /**
  * Send an image message with caption via WhatsApp Cloud API.
- * Used to send portfolio examples.
  */
 export async function sendImageMessage(
   to: string,
@@ -151,6 +290,43 @@ export async function sendImageMessage(
   if (!response.ok) {
     const err = await response.text();
     console.error('[WhatsApp] Send image failed:', err);
+    throw new Error(`WhatsApp API error: ${response.status}`);
+  }
+}
+
+/**
+ * Send a document via WhatsApp Cloud API.
+ */
+export async function sendDocumentMessage(
+  to: string,
+  documentUrl: string,
+  filename: string,
+  caption?: string
+): Promise<void> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  const response = await fetch(
+    `${WHATSAPP_API_URL}/${phoneNumberId}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to,
+        type: 'document',
+        document: { link: documentUrl, filename, caption },
+      }),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.text();
+    console.error('[WhatsApp] Send document failed:', err);
     throw new Error(`WhatsApp API error: ${response.status}`);
   }
 }
