@@ -1,15 +1,15 @@
-import { getConversations } from '@/lib/queries';
+import { getConversationsWithPreview } from '@/lib/queries';
 import ConversationsTable from '@/components/ConversationsTable';
 import Link from 'next/link';
 
-export const revalidate = 15;
+export const dynamic = 'force-dynamic';
 
 const FILTERS = ['all', 'active', 'scheduled', 'closed'] as const;
 const FILTER_LABELS: Record<string, string> = { all: 'Todas', active: 'Activas', scheduled: 'Agendadas', closed: 'Cerradas' };
 
 export default async function ConversationsPage({ searchParams }: { searchParams: { status?: string } }) {
   const status = searchParams.status || 'all';
-  const conversations = await getConversations(status);
+  const conversations = await getConversationsWithPreview(status);
 
   return (
     <div style={{ padding: '32px', maxWidth: 1280 }}>

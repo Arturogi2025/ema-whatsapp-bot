@@ -2,16 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Send, Bot, UserCheck } from 'lucide-react';
+import { Send, Bot, UserCheck, XCircle, RotateCcw } from 'lucide-react';
 
 interface ConversationActionsProps {
   conversationId: string;
   initialAiPaused: boolean;
+  conversationStatus?: string;
 }
 
 export default function ConversationActions({
   conversationId,
   initialAiPaused,
+  conversationStatus = 'active',
 }: ConversationActionsProps) {
   const router = useRouter();
   const [text, setText] = useState('');
@@ -19,6 +21,8 @@ export default function ConversationActions({
   const [aiPaused, setAiPaused] = useState(initialAiPaused);
   const [togglingAi, setTogglingAi] = useState(false);
   const [sendError, setSendError] = useState('');
+  const [status, setStatus] = useState(conversationStatus);
+  const [changingStatus, setChangingStatus] = useState(false);
 
   async function handleSend() {
     if (!text.trim() || sending) return;
@@ -68,6 +72,26 @@ export default function ConversationActions({
     }
   }
 
+  async function handleStatusChange(newStatus: string) {
+    setChangingStatus(true);
+    try {
+      const res = await fetch(`/api/conversations/${conversationId}/status`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (res.ok) {
+        setStatus(newStatus);
+        router.refresh();
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setChangingStatus(false);
+    }
+  }
+
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -84,13 +108,14 @@ export default function ConversationActions({
         flexShrink: 0,
       }}
     >
-      {/* AI toggle bar */}
+      {/* AI toggle + status bar */}
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           marginBottom: 10,
+          gap: 8,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -112,26 +137,61 @@ export default function ConversationActions({
           </span>
         </div>
 
-        <button
-          onClick={handleToggleAi}
-          disabled={togglingAi}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '5px 12px',
-            borderRadius: 7,
-            border: `1px solid ${aiPaused ? '#f59e0b40' : '#22c55e40'}`,
-            background: aiPaused ? 'rgba(245, 158, 11, 0.08)' : 'rgba(34, 197, 94, 0.08)',
-            color: aiPaused ? '#f59e0b' : '#22c55e',
-            fontSize: 12,
-            fontWeight: 600,
-            cursor: togglingAi ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s',
-          }}
-        >
-          {togglingAi ? '...' : aiPaused ? '▶ Reactivar IA' : '⏸ Pausar IA'}
-        </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {/* Close/Reopen button */}
+          <button
+            onClick={() => handleStatusChange(status === 'closed' ? 'active' : 'closed')}
+            disabled={changingStatus}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 10px',
+              borderRadius: 7,
+              border: `1px solid ${status === 'closed' ? '#22c55e40' : '#ef444440'}`,
+              background: status === 'closed' ? 'rgba(34, 197, 94, 0.08)' : 'rgba(239, 68, 68, 0.08)',
+              color: status === 'closed' ? '#22c55e' : '#ef4444',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: changingStatus ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            {status === 'closed' ? (
+              <>
+                <RotateCcw size={11} />
+                Reabrir
+              </>
+            ) : (
+              <>
+                <XCircle size={11} />
+                Cerrar
+              </>
+            )}
+          </button>
+
+          {/* AI toggle */}
+          <button
+            onClick={handleToggleAi}
+            disabled={togglingAi}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '5px 10px',
+              borderRadius: 7,
+              border: `1px solid ${aiPaused ? '#f59e0b40' : '#22c55e40'}`,
+              background: aiPaused ? 'rgba(245, 158, 11, 0.08)' : 'rgba(34, 197, 94, 0.08)',
+              color: aiPaused ? '#f59e0b' : '#22c55e',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: togglingAi ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+            }}
+          >
+            {togglingAi ? '...' : aiPaused ? '▶ Reactivar IA' : '⏸ Pausar IA'}
+          </button>
+        </div>
       </div>
 
       {/* Reply box */}
@@ -195,7 +255,7 @@ export default function ConversationActions({
             boxShadow:
               sending || !text.trim()
                 ? 'none'
-                : '0 4px 16px rgba(124, 58, 237, 0.4)',
+                : '0 4px 16px rgba(245, 195, 0, 0.4)',
           }}
         >
           {sending ? (

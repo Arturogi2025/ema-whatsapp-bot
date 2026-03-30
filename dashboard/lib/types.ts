@@ -1,6 +1,7 @@
 export type ConversationStatus = 'active' | 'scheduled' | 'closed';
 export type LeadStatus = 'new' | 'contacted' | 'scheduled' | 'converted' | 'lost';
 export type MessageRole = 'user' | 'assistant' | 'system';
+export type LeadTemperature = 'hot' | 'warm' | 'cold';
 
 export interface Conversation {
   id: string;
@@ -12,6 +13,9 @@ export interface Conversation {
   ai_paused: boolean;
   created_at: string;
   updated_at: string;
+  // Computed fields
+  last_message?: string | null;
+  last_message_role?: string | null;
 }
 
 export interface Message {
@@ -20,6 +24,8 @@ export interface Message {
   role: MessageRole;
   content: string;
   timestamp: string;
+  media_type?: string | null;
+  media_url?: string | null;
 }
 
 export interface Lead {
@@ -41,6 +47,7 @@ export interface DashboardStats {
   totalLeads: number;
   conversionRate: number;
   newThisWeek: number;
+  avgResponseTime?: number;
 }
 
 export interface DailyActivity {
@@ -52,4 +59,12 @@ export interface DailyActivity {
 export interface ProjectTypeCount {
   project_type: string;
   count: number;
+}
+
+export interface ConversationInsights {
+  summary: string;
+  leadTemperature: LeadTemperature;
+  signals: string[];
+  nextSteps: string[];
+  city: string | null;
 }

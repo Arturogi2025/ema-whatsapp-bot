@@ -79,6 +79,38 @@ export async function getConversations(status?: string): Promise<Conversation[]>
   return (data || []) as Conversation[];
 }
 
+/** Get conversations WITH last message preview */
+export async function getConversationsWithPreview(status?: string): Promise<Conversation[]> {
+  const conversations = await getConversations(status);
+  if (conversations.length === 0) return conversations;
+
+  const supabase = getSupabaseAdmin();
+  const ids = conversations.map(c => c.id);
+
+  // Fetch recent messages for all conversations (ordered newest first)
+  const { data: recentMsgs } = await supabase
+    .from('messages')
+    .select('conversation_id, content, role')
+    .in('conversation_id', ids)
+    .neq('role', 'system')
+    .order('timestamp', { ascending: false })
+    .limit(500);
+
+  // Pick the most recent message per conversation
+  const lastMsgMap = new Map<string, { content: string; role: string }>();
+  for (const msg of recentMsgs || []) {
+    if (!lastMsgMap.has(msg.conversation_id)) {
+      lastMsgMap.set(msg.conversation_id, { content: msg.content, role: msg.role });
+    }
+  }
+
+  return conversations.map(c => ({
+    ...c,
+    last_message: lastMsgMap.get(c.id)?.content || null,
+    last_message_role: lastMsgMap.get(c.id)?.role || null,
+  }));
+}
+
 export async function getConversation(id: string): Promise<Conversation | null> {
   const supabase = getSupabaseAdmin();
   const { data } = await supabase
@@ -141,4 +173,62 @@ export async function getProjectTypeCounts() {
   return Object.entries(counts)
     .map(([project_type, count]) => ({ project_type, count }))
     .sort((a, b) => b.count - a.count);
+}
+
+/** Get city distribution from phone prefixes */
+export async function getCityDistribution() {
+  const supabase = getSupabaseAdmin();
+  const { data } = await supabase.from('conversations').select('lead_phone');
+  if (!data) return [];
+
+  // Dynamic import to avoid bundling all area codes in every query
+  const { detectCity } = await import('./geo');
+  const counts: Record<string, number> = {};
+  for (const row of data) {
+    const city = detectCity(row.lead_phone) || 'Otra';
+    counts[city] = (counts[city] || 0) + 1;
+  }
+
+  return Object.entries(counts)
+    .map(([city, count]) => ({ city, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/** Get average first response time in minutes */
+export async function getAvgResponseTime(): Promise<number | null> {
+  const supabase = getSupabaseAdmin();
+
+  // Get first user message and first assistant message per conversation
+  const { data: messages } = await supabase
+    .from('messages')
+    .select('conversation_id, role, timestamp')
+    .in('role', ['user', 'assistant'])
+    .order('timestamp', { ascending: true })
+    .limit(1000);
+
+  if (!messages || messages.length === 0) return null;
+
+  // Group by conversation
+  const convMsgs: Record<string, typeof messages> = {};
+  for (const m of messages) {
+    if (!convMsgs[m.conversation_id]) convMsgs[m.conversation_id] = [];
+    convMsgs[m.conversation_id].push(m);
+  }
+
+  let totalMinutes = 0;
+  let count = 0;
+
+  for (const msgs of Object.values(convMsgs)) {
+    const firstUser = msgs.find(m => m.role === 'user');
+    const firstAssistant = msgs.find(m => m.role === 'assistant');
+    if (firstUser && firstAssistant) {
+      const diff = new Date(firstAssistant.timestamp).getTime() - new Date(firstUser.timestamp).getTime();
+      if (diff > 0 && diff < 1000 * 60 * 60) { // < 1 hour to be valid
+        totalMinutes += diff / (1000 * 60);
+        count++;
+      }
+    }
+  }
+
+  return count > 0 ? Math.round((totalMinutes / count) * 10) / 10 : null;
 }

@@ -1,6 +1,8 @@
 import { getConversation, getMessages, getLeadByConversation } from '@/lib/queries';
 import StatusBadge from '@/components/StatusBadge';
 import ConversationActions from './ConversationActions';
+import ConversationInsights from '@/components/ConversationInsights';
+import ScrollToBottom from '@/components/ScrollToBottom';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -12,6 +14,7 @@ import {
   MessageSquare,
   Bot,
   Clock,
+  UserCheck,
 } from 'lucide-react';
 import { fmtMX } from '@/lib/tz';
 
@@ -29,7 +32,7 @@ function MessageBubble({
   const isUser = role === 'user';
   const isSystem = role === 'system';
 
-  if (isSystem) return null; // hide system messages
+  if (isSystem) return null;
 
   return (
     <div
@@ -41,7 +44,6 @@ function MessageBubble({
         marginBottom: 12,
       }}
     >
-      {/* Avatar */}
       <div
         style={{
           width: 28,
@@ -62,7 +64,6 @@ function MessageBubble({
         )}
       </div>
 
-      {/* Bubble */}
       <div
         style={{
           maxWidth: '72%',
@@ -140,6 +141,11 @@ export default async function ConversationDetailPage({
     if (!messagesByDate[dateKey]) messagesByDate[dateKey] = [];
     messagesByDate[dateKey].push(msg);
   }
+
+  // Count manual vs AI messages
+  const userMsgCount = messages.filter(m => m.role === 'user').length;
+  const assistantMsgCount = messages.filter(m => m.role === 'assistant').length;
+  const visibleMsgCount = messages.filter(m => m.role !== 'system').length;
 
   return (
     <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -224,7 +230,7 @@ export default async function ConversationDetailPage({
           >
             <MessageSquare size={13} color="var(--text-muted)" />
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              {messages.filter(m => m.role !== 'system').length} mensajes
+              {visibleMsgCount} mensajes
             </span>
           </div>
         </div>
@@ -275,19 +281,23 @@ export default async function ConversationDetailPage({
               </div>
             ))
           )}
+          {/* Auto-scroll to bottom */}
+          <ScrollToBottom />
         </div>
 
         {/* Reply box + AI toggle */}
         <ConversationActions
           conversationId={params.id}
           initialAiPaused={(conversation as any).ai_paused ?? false}
+          conversationStatus={conversation.status}
         />
       </div>
 
       {/* Info sidebar */}
       <div
+        className="conversation-sidebar"
         style={{
-          width: 300,
+          width: 320,
           flexShrink: 0,
           background: 'var(--bg-surface)',
           overflowY: 'auto',
@@ -340,13 +350,13 @@ export default async function ConversationDetailPage({
             )}
 
             <InfoRow
-              icon={<User size={14} />}
+              icon={<UserCheck size={14} />}
               label="Estado del lead"
               value={lead.status}
             />
 
             {lead.objective && (
-              <div style={{ padding: '10px 0' }}>
+              <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 6 }}>
                   Objetivo
                 </div>
@@ -358,10 +368,25 @@ export default async function ConversationDetailPage({
           </>
         )}
 
+        {/* AI Insights */}
+        <div
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.07em',
+            margin: '20px 0 0',
+          }}
+        >
+          Inteligencia IA
+        </div>
+        <ConversationInsights conversationId={params.id} />
+
         {/* Stats */}
         <div
           style={{
-            marginTop: 24,
+            marginTop: 16,
             padding: 16,
             background: 'var(--bg-elevated)',
             borderRadius: 10,
@@ -374,12 +399,12 @@ export default async function ConversationDetailPage({
           {[
             {
               label: 'Mensajes usuario',
-              value: messages.filter(m => m.role === 'user').length,
+              value: userMsgCount,
               color: 'var(--text-primary)',
             },
             {
               label: 'Respuestas IA',
-              value: messages.filter(m => m.role === 'assistant').length,
+              value: assistantMsgCount,
               color: '#F5C300',
             },
           ].map(({ label, value, color }) => (

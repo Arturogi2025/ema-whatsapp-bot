@@ -80,3 +80,64 @@ h1, h2, h3, .font-display {
   animation: shimmer 1.5s infinite;
   border-radius: 6px;
 }
+
+/* ========= Responsive ========= */
+
+/* Tablets (< 1024px) */
+@media (max-width: 1024px) {
+  /* Hide conversation sidebar on tablets */
+  .conversation-sidebar {
+    display: none !important;
+  }
+}
+
+/* Mobile (< 768px) */
+@media (max-width: 768px) {
+  /* Collapse sidebar navigation */
+  aside {
+    width: 60px !important;
+    padding: 12px 6px !important;
+    overflow: hidden;
+  }
+
+  aside nav a span,
+  aside > div:first-child > div:last-child,
+  aside > div:last-child > div:first-child {
+    display: none;
+  }
+
+  aside nav a {
+    justify-content: center !important;
+    padding: 10px !important;
+  }
+
+  /* Full width tables */
+  table {
+    font-size: 13px;
+  }
+
+  /* Stack KPI cards */
+  .kpi-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* Conversation sidebar hidden */
+  .conversation-sidebar {
+    display: none !important;
+  }
+}
+
+/* Small mobile (< 480px) */
+@media (max-width: 480px) {
+  aside {
+    display: none !important;
+  }
+
+  main {
+    margin-left: 0 !important;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
