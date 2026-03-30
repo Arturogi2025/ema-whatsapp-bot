@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { fmtMX } from '@/lib/tz';
 
-export const revalidate = 10;
+export const dynamic = 'force-dynamic';
 
 function MessageBubble({
   role,
