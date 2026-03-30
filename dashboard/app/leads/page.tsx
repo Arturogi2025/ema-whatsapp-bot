@@ -1,9 +1,10 @@
 import { getLeads, getStats } from '@/lib/queries';
 import LeadsTable from '@/components/LeadsTable';
+import ExportButton from '@/components/ExportButton';
 import { Users, Calendar, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
-export const revalidate = 15;
+export const dynamic = 'force-dynamic';
 
 const FILTERS = ['all', 'new', 'contacted', 'scheduled', 'converted', 'lost'] as const;
 const FILTER_LABELS: Record<string, string> = { all: 'Todos', new: 'Nuevos', contacted: 'Contactados', scheduled: 'Agendados', converted: 'Convertidos', lost: 'Perdidos' };
@@ -20,9 +21,12 @@ export default async function LeadsPage({ searchParams }: { searchParams: { stat
 
   return (
     <div style={{ padding: '32px', maxWidth: 1280 }}>
-      <div style={{ marginBottom: 28 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)' }}>Leads</h1>
-        <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>CRM de prospectos generados via WhatsApp</p>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16 }}>
+        <div>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)' }}>Leads</h1>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>CRM de prospectos generados via WhatsApp</p>
+        </div>
+        <ExportButton status={status} />
       </div>
 
       {/* Mini KPIs */}

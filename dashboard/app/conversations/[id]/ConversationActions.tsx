@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Send, Bot, UserCheck, XCircle, RotateCcw } from 'lucide-react';
+import QuickReplies from '@/components/QuickReplies';
 
 interface ConversationActionsProps {
   conversationId: string;
@@ -193,6 +194,9 @@ export default function ConversationActions({
           </button>
         </div>
       </div>
+
+      {/* Quick replies */}
+      <QuickReplies onSelect={(t) => setText(t)} />
 
       {/* Reply box */}
       <div

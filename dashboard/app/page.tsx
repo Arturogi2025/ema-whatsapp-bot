@@ -3,6 +3,7 @@ import KpiCard from '@/components/KpiCard';
 import ActivityChart from '@/components/charts/ActivityChart';
 import StatusDonut from '@/components/charts/StatusDonut';
 import RecentConversationsTable from '@/components/RecentConversationsTable';
+import PeriodFilter from '@/components/PeriodFilter';
 import { MessageSquare, Users, CalendarCheck, Zap, MapPin, Clock, TrendingUp } from 'lucide-react';
 import { fmtMX } from '@/lib/tz';
 import Link from 'next/link';
@@ -35,10 +36,13 @@ function CardHeader({ title, sub }: { title: string; sub?: string }) {
 
 const CITY_COLORS = ['#F5C300', '#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7', '#60a5fa', '#f472b6'];
 
-export default async function OverviewPage() {
+export default async function OverviewPage({ searchParams }: { searchParams: { period?: string } }) {
+  const period = parseInt(searchParams.period || '14', 10) || 14;
+  const days = searchParams.period === 'all' ? 365 : period;
+
   const [stats, activity, conversations, projectTypes, cityDist, avgResponseTime] = await Promise.all([
     getStats(),
-    getDailyActivity(14),
+    getDailyActivity(days),
     getConversationsWithPreview(),
     getProjectTypeCounts(),
     getCityDistribution(),
@@ -75,9 +79,12 @@ export default async function OverviewPage() {
           />
           <span style={{ fontSize: 12, color: '#22c55e', fontWeight: 500 }}>Sistema activo</span>
         </div>
-        <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)' }}>
-          Overview
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)' }}>
+            Overview
+          </h1>
+          <PeriodFilter />
+        </div>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
           {fmtMX(new Date(), "EEEE d 'de' MMMM, yyyy")}
         </p>
@@ -136,7 +143,7 @@ export default async function OverviewPage() {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 16, marginBottom: 24 }}>
         {/* Activity */}
         <Card>
-          <CardHeader title="Actividad" sub="Conversaciones y mensajes — últimos 14 días" />
+          <CardHeader title="Actividad" sub={`Conversaciones y mensajes — últimos ${days} días`} />
           <div style={{ padding: '20px 8px 16px 16px' }}>
             <ActivityChart data={activity} />
           </div>

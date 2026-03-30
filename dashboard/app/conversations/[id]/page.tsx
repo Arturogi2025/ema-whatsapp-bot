@@ -3,6 +3,9 @@ import StatusBadge from '@/components/StatusBadge';
 import ConversationActions from './ConversationActions';
 import ConversationInsights from '@/components/ConversationInsights';
 import ScrollToBottom from '@/components/ScrollToBottom';
+import TagManager from '@/components/TagManager';
+import InternalNotes from '@/components/InternalNotes';
+import SoundAlert from '@/components/SoundAlert';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -233,6 +236,8 @@ export default async function ConversationDetailPage({
               {visibleMsgCount} mensajes
             </span>
           </div>
+
+          <SoundAlert messageCount={visibleMsgCount} />
         </div>
 
         {/* Messages */}
@@ -368,6 +373,9 @@ export default async function ConversationDetailPage({
           </>
         )}
 
+        {/* Tags */}
+        <TagManager conversationId={params.id} />
+
         {/* AI Insights */}
         <div
           style={{
@@ -382,6 +390,9 @@ export default async function ConversationDetailPage({
           Inteligencia IA
         </div>
         <ConversationInsights conversationId={params.id} />
+
+        {/* Internal Notes */}
+        <InternalNotes conversationId={params.id} />
 
         {/* Stats */}
         <div
