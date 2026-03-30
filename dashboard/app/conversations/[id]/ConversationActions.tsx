@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Send, Bot, UserCheck, XCircle, RotateCcw, Image, FileText } from 'lucide-react';
 import QuickReplies from '@/components/QuickReplies';
+import AiSuggestions from '@/components/AiSuggestions';
 
 interface ConversationActionsProps {
   conversationId: string;
@@ -321,6 +322,9 @@ export default function ConversationActions({
         </div>
       )}
 
+      {/* Dynamic AI Suggestions - clickable pills above the textarea */}
+      <AiSuggestions conversationId={conversationId} onSelect={(msg) => setText(msg)} />
+
       {/* Reply box */}
       <div
         style={{
@@ -362,25 +366,25 @@ export default function ConversationActions({
 
         <button
           onClick={handleSend}
-          disabled={sending || !text.trim()}
+          disabled={sending || (!text.trim() && !(showMediaInput && mediaUrl.trim()))}
           style={{
             width: 44,
             height: 44,
             borderRadius: 10,
             border: 'none',
             background:
-              sending || !text.trim()
+              sending || (!text.trim() && !(showMediaInput && mediaUrl.trim()))
                 ? 'var(--bg-elevated)'
                 : 'linear-gradient(135deg, #F5C300, #F5C300)',
-            color: sending || !text.trim() ? 'var(--text-muted)' : 'white',
+            color: sending || (!text.trim() && !(showMediaInput && mediaUrl.trim())) ? 'var(--text-muted)' : 'white',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            cursor: sending || !text.trim() ? 'not-allowed' : 'pointer',
+            cursor: sending || (!text.trim() && !(showMediaInput && mediaUrl.trim())) ? 'not-allowed' : 'pointer',
             flexShrink: 0,
             transition: 'all 0.2s',
             boxShadow:
-              sending || !text.trim()
+              sending || (!text.trim() && !(showMediaInput && mediaUrl.trim()))
                 ? 'none'
                 : '0 4px 16px rgba(245, 195, 0, 0.4)',
           }}

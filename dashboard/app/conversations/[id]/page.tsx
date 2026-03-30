@@ -7,6 +7,7 @@ import TagManager from '@/components/TagManager';
 import InternalNotes from '@/components/InternalNotes';
 import SoundAlert from '@/components/SoundAlert';
 import AutoRefresh from '@/components/AutoRefresh';
+import ConversationRightSidebar from '@/components/ConversationRightSidebar';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -151,8 +152,137 @@ export default async function ConversationDetailPage({
   const assistantMsgCount = messages.filter(m => m.role === 'assistant').length;
   const visibleMsgCount = messages.filter(m => m.role !== 'system').length;
 
+  const sidebarContent = (
+    <>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 16 }}>
+        Informacion
+      </div>
+
+      {/* Conversation info */}
+      <InfoRow icon={<Phone size={14} />} label="Telefono" value={conversation.lead_phone} />
+      <InfoRow icon={<User size={14} />} label="Nombre" value={conversation.lead_name || 'Sin nombre'} />
+      <InfoRow
+        icon={<Clock size={14} />}
+        label="Iniciada"
+        value={fmtMX(conversation.created_at, "d MMM yyyy 'a las' HH:mm")}
+      />
+
+      {/* Lead info */}
+      {lead && (
+        <>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--text-muted)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.07em',
+              margin: '20px 0 16px',
+            }}
+          >
+            Lead
+          </div>
+
+          {lead.project_type && (
+            <InfoRow
+              icon={<Briefcase size={14} />}
+              label="Tipo de proyecto"
+              value={lead.project_type}
+            />
+          )}
+
+          {lead.preferred_datetime && (
+            <InfoRow
+              icon={<Calendar size={14} />}
+              label="Horario preferido"
+              value={lead.preferred_datetime}
+            />
+          )}
+
+          <InfoRow
+            icon={<UserCheck size={14} />}
+            label="Estado del lead"
+            value={lead.status}
+          />
+
+          {lead.objective && (
+            <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 6 }}>
+                Objetivo
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                {lead.objective}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Tags */}
+      <TagManager conversationId={params.id} />
+
+      {/* AI Insights */}
+      <div
+        style={{
+          fontSize: 12,
+          fontWeight: 600,
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.07em',
+          margin: '20px 0 0',
+        }}
+      >
+        Inteligencia IA
+      </div>
+      <ConversationInsights conversationId={params.id} />
+
+      {/* Internal Notes */}
+      <InternalNotes conversationId={params.id} />
+
+      {/* Stats */}
+      <div
+        style={{
+          marginTop: 16,
+          padding: 16,
+          background: 'var(--bg-elevated)',
+          borderRadius: 10,
+          border: '1px solid var(--border)',
+        }}
+      >
+        <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 12 }}>
+          Resumen
+        </div>
+        {[
+          {
+            label: 'Mensajes usuario',
+            value: userMsgCount,
+            color: 'var(--text-primary)',
+          },
+          {
+            label: 'Respuestas IA',
+            value: assistantMsgCount,
+            color: '#F5C300',
+          },
+        ].map(({ label, value, color }) => (
+          <div
+            key={label}
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: 8,
+            }}
+          >
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
+            <span style={{ fontSize: 15, fontWeight: 700, color }}>{value}</span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div className="conversation-detail" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       {/* Auto-refresh every 8 seconds for live conversation updates */}
       <AutoRefresh intervalMs={8000} />
 
@@ -242,6 +372,8 @@ export default async function ConversationDetailPage({
           </div>
 
           <SoundAlert messageCount={visibleMsgCount} />
+
+          {/* Right sidebar toggle for mobile/tablet - rendered by ConversationRightSidebar */}
         </div>
 
         {/* Messages */}
@@ -291,7 +423,7 @@ export default async function ConversationDetailPage({
             ))
           )}
           {/* Auto-scroll to bottom */}
-          <ScrollToBottom />
+          <ScrollToBottom messageCount={visibleMsgCount} />
         </div>
 
         {/* Reply box + AI toggle */}
@@ -302,142 +434,10 @@ export default async function ConversationDetailPage({
         />
       </div>
 
-      {/* Info sidebar */}
-      <div
-        className="conversation-sidebar"
-        style={{
-          width: 320,
-          flexShrink: 0,
-          background: 'var(--bg-surface)',
-          overflowY: 'auto',
-          padding: '20px',
-        }}
-      >
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 16 }}>
-          Información
-        </div>
-
-        {/* Conversation info */}
-        <InfoRow icon={<Phone size={14} />} label="Teléfono" value={conversation.lead_phone} />
-        <InfoRow icon={<User size={14} />} label="Nombre" value={conversation.lead_name || 'Sin nombre'} />
-        <InfoRow
-          icon={<Clock size={14} />}
-          label="Iniciada"
-          value={fmtMX(conversation.created_at, "d MMM yyyy 'a las' HH:mm")}
-        />
-
-        {/* Lead info */}
-        {lead && (
-          <>
-            <div
-              style={{
-                fontSize: 12,
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.07em',
-                margin: '20px 0 16px',
-              }}
-            >
-              Lead
-            </div>
-
-            {lead.project_type && (
-              <InfoRow
-                icon={<Briefcase size={14} />}
-                label="Tipo de proyecto"
-                value={lead.project_type}
-              />
-            )}
-
-            {lead.preferred_datetime && (
-              <InfoRow
-                icon={<Calendar size={14} />}
-                label="Horario preferido"
-                value={lead.preferred_datetime}
-              />
-            )}
-
-            <InfoRow
-              icon={<UserCheck size={14} />}
-              label="Estado del lead"
-              value={lead.status}
-            />
-
-            {lead.objective && (
-              <div style={{ padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 6 }}>
-                  Objetivo
-                </div>
-                <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  {lead.objective}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {/* Tags */}
-        <TagManager conversationId={params.id} />
-
-        {/* AI Insights */}
-        <div
-          style={{
-            fontSize: 12,
-            fontWeight: 600,
-            color: 'var(--text-muted)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.07em',
-            margin: '20px 0 0',
-          }}
-        >
-          Inteligencia IA
-        </div>
-        <ConversationInsights conversationId={params.id} />
-
-        {/* Internal Notes */}
-        <InternalNotes conversationId={params.id} />
-
-        {/* Stats */}
-        <div
-          style={{
-            marginTop: 16,
-            padding: 16,
-            background: 'var(--bg-elevated)',
-            borderRadius: 10,
-            border: '1px solid var(--border)',
-          }}
-        >
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', fontWeight: 600, marginBottom: 12 }}>
-            Resumen
-          </div>
-          {[
-            {
-              label: 'Mensajes usuario',
-              value: userMsgCount,
-              color: 'var(--text-primary)',
-            },
-            {
-              label: 'Respuestas IA',
-              value: assistantMsgCount,
-              color: '#F5C300',
-            },
-          ].map(({ label, value, color }) => (
-            <div
-              key={label}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: 8,
-              }}
-            >
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{label}</span>
-              <span style={{ fontSize: 15, fontWeight: 700, color }}>{value}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Info sidebar - uses drawer on mobile/tablet, static on desktop */}
+      <ConversationRightSidebar>
+        {sidebarContent}
+      </ConversationRightSidebar>
     </div>
   );
 }

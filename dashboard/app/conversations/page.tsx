@@ -1,6 +1,7 @@
 import { getConversationsWithPreview } from '@/lib/queries';
 import ConversationsTable from '@/components/ConversationsTable';
 import SearchBar from '@/components/SearchBar';
+import AutoRefresh from '@/components/AutoRefresh';
 import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
@@ -14,6 +15,8 @@ export default async function ConversationsPage({ searchParams }: { searchParams
 
   return (
     <div style={{ padding: '32px', maxWidth: 1280 }}>
+      {/* Auto-refresh every 10 seconds for live conversation list updates */}
+      <AutoRefresh intervalMs={10000} />
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 28, gap: 16, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)' }}>Conversaciones</h1>

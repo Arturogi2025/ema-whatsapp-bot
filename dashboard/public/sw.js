@@ -1,6 +1,5 @@
-const CACHE_NAME = 'bolt-dashboard-v1';
+const CACHE_NAME = 'bolt-dashboard-v2';
 const STATIC_ASSETS = [
-  '/',
   '/favicon.svg',
   '/manifest.json',
 ];
@@ -13,7 +12,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
-// Activate: clean old caches
+// Activate: clean old caches (including v1 that cached dynamic pages)
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -23,7 +22,8 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch: network-first for API, cache-first for static
+// Fetch: ONLY cache truly static assets. Never cache API calls, pages, or
+// Next.js RSC payloads — they must always hit the server for fresh data.
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -31,29 +31,26 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET requests
   if (request.method !== 'GET') return;
 
-  // API calls and dynamic pages: network-first
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/conversations') || url.pathname.startsWith('/leads')) {
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Cache successful responses
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match(request))
-    );
-    return;
+  // NEVER intercept API calls, dynamic pages, or Next.js internals
+  // Let them go straight to the network.
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.startsWith('/conversations') ||
+    url.pathname.startsWith('/leads') ||
+    url.pathname.startsWith('/_next/') ||
+    url.pathname === '/' ||
+    request.headers.get('RSC') === '1' ||
+    request.headers.get('Next-Router-State-Tree')
+  ) {
+    return; // fall through to default browser fetch — no caching
   }
 
-  // Static assets: cache-first
+  // Static assets only: cache-first
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
-        if (response.ok) {
+        if (response.ok && response.type === 'basic') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
         }

@@ -10,8 +10,13 @@ export function getSupabaseClient() {
 }
 
 // Server-side Supabase (for data fetching in server components)
+// IMPORTANT: Disable Next.js fetch cache so server components always get fresh data.
 export function getSupabaseAdmin() {
   return createClient(url, serviceKey, {
     auth: { persistSession: false },
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, cache: 'no-store' }),
+    },
   });
 }

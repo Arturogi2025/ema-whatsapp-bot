@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
     ],
     apple: [
       { url: '/icon-192.png', sizes: '192x192' },
@@ -33,6 +34,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <head>
         <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
       <body style={{ background: 'var(--bg-base)' }}>
         <DashboardShell>

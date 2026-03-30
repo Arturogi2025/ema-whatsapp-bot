@@ -27,20 +27,9 @@ export default function Sidebar() {
   }
 
   return (
-    <aside
-      style={{
-        width: 240,
-        minHeight: '100vh',
-        background: 'var(--bg-surface)',
-        borderRight: '1px solid var(--border)',
-        display: 'flex',
-        flexDirection: 'column',
-        padding: '20px 12px',
-        flexShrink: 0,
-      }}
-    >
+    <aside className="sidebar">
       {/* Logo */}
-      <div style={{ padding: '4px 12px 24px', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="sidebar-logo">
         <div
           style={{
             width: 34,
@@ -51,11 +40,12 @@ export default function Sidebar() {
             alignItems: 'center',
             justifyContent: 'center',
             boxShadow: '0 0 16px rgba(245,195,0,0.3)',
+            flexShrink: 0,
           }}
         >
           <Zap size={18} color="#0a0a0a" strokeWidth={2.5} fill="#0a0a0a" />
         </div>
-        <div>
+        <div className="sidebar-logo-text">
           <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1, letterSpacing: '0.02em', fontFamily: "'Barlow Condensed', sans-serif" }}>
             BOLT<span style={{ color: '#F5C300' }}>.dev</span>
           </div>
@@ -67,7 +57,7 @@ export default function Sidebar() {
 
       {/* Nav */}
       <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '0 12px 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+        <div className="sidebar-section-label" style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', padding: '0 12px 8px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
           Principal
         </div>
         {nav.map(({ href, label, icon: Icon }) => {
@@ -76,6 +66,8 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
+              className="sidebar-nav-link"
+              title={label}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -88,6 +80,8 @@ export default function Sidebar() {
                 color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                 background: active ? 'var(--bg-elevated)' : 'transparent',
                 transition: 'all 0.15s',
+                overflow: 'hidden',
+                whiteSpace: 'nowrap',
               }}
               onMouseEnter={e => {
                 if (!active) {
@@ -106,16 +100,19 @@ export default function Sidebar() {
                 size={16}
                 color={active ? '#F5C300' : 'currentColor'}
                 strokeWidth={active ? 2.5 : 2}
+                style={{ flexShrink: 0 }}
               />
-              {label}
+              <span className="sidebar-label">{label}</span>
               {active && (
                 <div
+                  className="sidebar-active-dot"
                   style={{
                     marginLeft: 'auto',
                     width: 6,
                     height: 6,
                     borderRadius: '50%',
                     background: '#F5C300',
+                    flexShrink: 0,
                   }}
                 />
               )}
@@ -125,18 +122,20 @@ export default function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div
+      <div className="sidebar-footer"
         style={{
           marginTop: 'auto',
           padding: '16px 12px 4px',
           borderTop: '1px solid var(--border)',
         }}
       >
-        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
+        <div className="sidebar-version" style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
           Bolt AI · WhatsApp · v1.0
         </div>
         <button
           onClick={handleLogout}
+          title="Cerrar sesion"
+          className="sidebar-logout-btn"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -150,6 +149,8 @@ export default function Sidebar() {
             fontSize: 12,
             cursor: 'pointer',
             transition: 'all 0.15s',
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
           }}
           onMouseEnter={e => {
             (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)';
@@ -160,8 +161,8 @@ export default function Sidebar() {
             (e.currentTarget as HTMLElement).style.color = 'var(--text-muted)';
           }}
         >
-          <LogOut size={13} />
-          Cerrar sesión
+          <LogOut size={13} style={{ flexShrink: 0 }} />
+          <span className="sidebar-label">Cerrar sesion</span>
         </button>
       </div>
     </aside>

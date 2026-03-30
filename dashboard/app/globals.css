@@ -19,6 +19,8 @@
   --brand-dark: #C49A00;
   --brand-glow: rgba(245, 195, 0, 0.15);
   --brand-on-yellow: #0a0a0a;
+
+  --sidebar-width: 240px;
 }
 
 * {
@@ -81,34 +83,129 @@ h1, h2, h3, .font-display {
   border-radius: 6px;
 }
 
+/* ========= Sidebar base styles ========= */
+.sidebar {
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 12px;
+  flex-shrink: 0;
+  transition: width 0.25s ease;
+  overflow: hidden;
+}
+
+.sidebar-logo {
+  padding: 4px 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 10;
+  overflow: hidden;
+}
+
+/* ========= Conversation sidebar desktop default ========= */
+.conversation-sidebar-desktop {
+  display: block;
+}
+
+/* Drawer hidden on desktop */
+.conversation-sidebar-drawer {
+  display: none;
+}
+
+.right-sidebar-toggle {
+  display: none !important;
+}
+
 /* ========= Responsive ========= */
 
-/* Tablets (< 1024px) */
+/* Tablets (768px - 1024px): Sidebar collapses to icon-only */
 @media (max-width: 1024px) {
-  /* Hide conversation sidebar on tablets */
-  .conversation-sidebar {
+  :root {
+    --sidebar-width: 60px;
+  }
+
+  .sidebar {
+    width: 60px;
+    padding: 16px 8px;
+    align-items: center;
+  }
+
+  .sidebar-logo {
+    padding: 4px 0 20px;
+    justify-content: center;
+  }
+
+  /* Hide text labels */
+  .sidebar-label,
+  .sidebar-logo-text,
+  .sidebar-section-label,
+  .sidebar-version {
     display: none !important;
+  }
+
+  /* Hide active dot indicator */
+  .sidebar-active-dot {
+    display: none !important;
+  }
+
+  /* Center nav links */
+  .sidebar-nav-link {
+    justify-content: center !important;
+    padding: 10px !important;
+    gap: 0 !important;
+  }
+
+  /* Footer adjustments */
+  .sidebar-footer {
+    padding: 12px 4px 4px !important;
+  }
+
+  .sidebar-logout-btn {
+    justify-content: center !important;
+    padding: 8px !important;
+    gap: 0 !important;
+  }
+
+  /* Hide conversation desktop sidebar, show toggle + drawer */
+  .conversation-sidebar-desktop {
+    display: none !important;
+  }
+
+  .conversation-sidebar-drawer {
+    display: block;
+  }
+
+  .right-sidebar-toggle {
+    display: flex !important;
+  }
+
+  /* Hide message count badge on tablet to save space */
+  .conversation-detail .msg-count-badge {
+    display: none;
   }
 }
 
-/* Mobile (< 768px) */
+/* Mobile (< 768px): Hide sidebar completely, use bottom nav */
 @media (max-width: 768px) {
-  /* Collapse sidebar navigation */
-  aside {
-    width: 60px !important;
-    padding: 12px 6px !important;
-    overflow: hidden;
+  .sidebar {
+    display: none !important;
   }
 
-  aside nav a span,
-  aside > div:first-child > div:last-child,
-  aside > div:last-child > div:first-child {
-    display: none;
+  main {
+    margin-left: 0 !important;
   }
 
-  aside nav a {
-    justify-content: center !important;
-    padding: 10px !important;
+  /* Show mobile bottom nav */
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+
+  /* Pad bottom to avoid bottom nav overlap */
+  main {
+    padding-bottom: 64px !important;
   }
 
   /* Full width tables */
@@ -121,15 +218,28 @@ h1, h2, h3, .font-display {
     grid-template-columns: 1fr 1fr !important;
   }
 
-  /* Conversation sidebar hidden */
-  .conversation-sidebar {
+  /* Conversation page adjustments */
+  .conversation-sidebar-desktop {
     display: none !important;
+  }
+
+  .conversation-sidebar-drawer {
+    display: block;
+  }
+
+  .right-sidebar-toggle {
+    display: flex !important;
+  }
+
+  /* Conversation detail: compact header on mobile */
+  .conversation-detail {
+    height: calc(100vh - 64px) !important;
   }
 }
 
 /* Small mobile (< 480px) */
 @media (max-width: 480px) {
-  aside {
+  .sidebar {
     display: none !important;
   }
 
@@ -145,5 +255,10 @@ h1, h2, h3, .font-display {
   /* Show mobile bottom nav */
   .mobile-bottom-nav {
     display: flex !important;
+  }
+
+  /* Adjust floating toggle position above bottom nav */
+  .right-sidebar-toggle {
+    bottom: 80px !important;
   }
 }

@@ -4,6 +4,7 @@ import ActivityChart from '@/components/charts/ActivityChart';
 import StatusDonut from '@/components/charts/StatusDonut';
 import RecentConversationsTable from '@/components/RecentConversationsTable';
 import PeriodFilter from '@/components/PeriodFilter';
+import AutoRefresh from '@/components/AutoRefresh';
 import { MessageSquare, Users, CalendarCheck, Zap, MapPin, Clock, TrendingUp } from 'lucide-react';
 import { fmtMX } from '@/lib/tz';
 import Link from 'next/link';
@@ -65,6 +66,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
 
   return (
     <div style={{ padding: '32px 32px', maxWidth: 1280 }}>
+      {/* Auto-refresh every 15 seconds for live dashboard updates */}
+      <AutoRefresh intervalMs={15000} />
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>

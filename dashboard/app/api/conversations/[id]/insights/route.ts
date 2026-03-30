@@ -4,6 +4,8 @@ import { scoreLead } from '@/lib/scoring';
 import { detectCity } from '@/lib/geo';
 import type { Message, Lead } from '@/lib/types';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string } }
