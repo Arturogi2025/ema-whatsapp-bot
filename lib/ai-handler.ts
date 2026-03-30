@@ -164,7 +164,7 @@ export async function handleAIConversation(
   ];
 
   const response = await client.messages.create({
-    model: 'claude-sonnet-4-5-20241022',
+    model: 'claude-haiku-4-5-20251001',
     max_tokens: 150,
     temperature: 0.6,
     system: SYSTEM_PROMPT + portfolioContext + scheduleNudge,
