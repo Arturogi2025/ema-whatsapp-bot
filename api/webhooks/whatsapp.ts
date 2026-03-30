@@ -1,5 +1,22 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// Disable Vercel's body parser so we can read the raw body for HMAC verification
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+function getRawBody(req: VercelRequest): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.setEncoding('utf8');
+    req.on('data', (chunk: string) => { data += chunk; });
+    req.on('end', () => resolve(data));
+    req.on('error', reject);
+  });
+}
+
 export default async function handler(
   req: VercelRequest,
   res: VercelResponse
@@ -29,13 +46,15 @@ export default async function handler(
     const { handleAIConversation } = require('../../lib/ai-handler');
     const { getRelevantExamples } = require('../../lib/portfolio');
 
-    const rawBody = JSON.stringify(req.body);
+    const rawBody = await getRawBody(req);
+    const body = JSON.parse(rawBody);
+
     if (!verifyWebhookSignature(req, rawBody)) {
       console.error('[WhatsApp] Invalid signature');
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
-    const message = parseWebhookPayload(req.body);
+    const message = parseWebhookPayload(body);
     if (!message) {
       return res.status(200).json({ received: true });
     }
