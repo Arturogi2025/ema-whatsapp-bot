@@ -50,15 +50,15 @@ export default function ActivityChart({ data }: Props) {
       <AreaChart data={data} margin={{ top: 5, right: 10, bottom: 0, left: -10 }}>
         <defs>
           <linearGradient id="gradConv" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#7c3aed" stopOpacity={0} />
+            <stop offset="5%" stopColor="#F5C300" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#F5C300" stopOpacity={0} />
           </linearGradient>
           <linearGradient id="gradMsg" x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
             <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke="#222222" vertical={false} />
         <XAxis
           dataKey="date"
           tickFormatter={d => format(parseISO(d), 'd MMM', { locale: es })}
@@ -86,11 +86,11 @@ export default function ActivityChart({ data }: Props) {
         <Area
           type="monotone"
           dataKey="conversations"
-          stroke="#7c3aed"
+          stroke="#F5C300"
           strokeWidth={2}
           fill="url(#gradConv)"
           dot={false}
-          activeDot={{ r: 4, fill: '#7c3aed' }}
+          activeDot={{ r: 4, fill: '#F5C300' }}
         />
       </AreaChart>
     </ResponsiveContainer>

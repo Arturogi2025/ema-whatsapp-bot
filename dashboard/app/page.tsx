@@ -46,7 +46,7 @@ export default async function OverviewPage() {
 
   const statusData = [
     { name: 'Activos', value: stats.activeConversations, color: '#22c55e' },
-    { name: 'Agendados', value: stats.scheduledCalls, color: '#a855f7' },
+    { name: 'Agendados', value: stats.scheduledCalls, color: '#F5C300' },
     {
       name: 'Cerrados',
       value: stats.totalConversations - stats.activeConversations - stats.scheduledCalls,
@@ -54,7 +54,7 @@ export default async function OverviewPage() {
     },
   ].filter(d => d.value >= 0);
 
-  const PROJECT_COLORS = ['#7c3aed', '#22c55e', '#f59e0b', '#60a5fa', '#f472b6'];
+  const PROJECT_COLORS = ['#F5C300', '#22c55e', '#f59e0b', '#60a5fa', '#f472b6'];
 
   return (
     <div style={{ padding: '32px 32px', maxWidth: 1280 }}>
@@ -93,7 +93,7 @@ export default async function OverviewPage() {
           label="Conversaciones totales"
           value={stats.totalConversations}
           sub={`${stats.newThisWeek} nuevas esta semana`}
-          accent="#7c3aed"
+          accent="#F5C300"
           icon={<MessageSquare size={16} />}
         />
         <KpiCard
@@ -107,7 +107,7 @@ export default async function OverviewPage() {
           label="Llamadas agendadas"
           value={stats.scheduledCalls}
           sub="Pendientes de realizar"
-          accent="#a855f7"
+          accent="#F5C300"
           icon={<CalendarCheck size={16} />}
         />
         <KpiCard
@@ -136,7 +136,7 @@ export default async function OverviewPage() {
             }}
           >
             {[
-              { color: '#7c3aed', label: 'Conversaciones' },
+              { color: '#F5C300', label: 'Conversaciones' },
               { color: '#22c55e', label: 'Mensajes' },
             ].map(({ color, label }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -198,7 +198,7 @@ export default async function OverviewPage() {
             href="/conversations"
             style={{
               fontSize: 13,
-              color: '#7c3aed',
+              color: '#F5C300',
               textDecoration: 'none',
               fontWeight: 500,
               display: 'flex',

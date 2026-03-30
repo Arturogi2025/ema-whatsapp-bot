@@ -89,7 +89,7 @@ function emailTemplate(title: string, badgeHtml: string, rows: string, extra = '
     <!-- Footer -->
     <div style="margin-top:28px;padding-top:20px;border-top:1px solid #27272a;text-align:center;">
       <p style="color:#3f3f46;font-size:11px;margin:0;">
-        Bolt AI · WhatsApp · <a href="https://bolt-dashboard.vercel.app" style="color:#7c3aed;text-decoration:none;">Ver dashboard →</a>
+        Bolt AI · WhatsApp · <a href="https://bolt-dashboard-one.vercel.app" style="color:#7c3aed;text-decoration:none;">Ver dashboard →</a>
       </p>
     </div>
   </div>
@@ -119,7 +119,7 @@ export async function notifyNewLead(params: {
     row('Proyecto', project) +
     row('Hora', time),
     `<div style="margin-top:20px;">
-      <a href="https://bolt-dashboard.vercel.app/conversations/${params.conversationId}"
+      <a href="https://bolt-dashboard-one.vercel.app/conversations/${params.conversationId}"
          style="display:inline-block;padding:10px 20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">
         Ver conversación →
       </a>
@@ -153,7 +153,7 @@ export async function notifyCallScheduled(params: {
     row('Horario', params.datetime) +
     row('Agendado a las', time),
     `<div style="margin-top:20px;">
-      <a href="https://bolt-dashboard.vercel.app/conversations/${params.conversationId}"
+      <a href="https://bolt-dashboard-one.vercel.app/conversations/${params.conversationId}"
          style="display:inline-block;padding:10px 20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">
         Ver conversación →
       </a>

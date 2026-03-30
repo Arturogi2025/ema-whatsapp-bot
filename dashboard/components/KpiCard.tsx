@@ -8,7 +8,7 @@ interface KpiCardProps {
   icon: React.ReactNode;
 }
 
-export default function KpiCard({ label, value, sub, accent = '#7c3aed', icon }: KpiCardProps) {
+export default function KpiCard({ label, value, sub, accent = '#F5C300', icon }: KpiCardProps) {
   return (
     <div
       style={{

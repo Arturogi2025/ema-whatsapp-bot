@@ -52,14 +52,14 @@ function MessageBubble({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: isUser ? '#18181b' : 'linear-gradient(135deg, #7c3aed, #a855f7)',
-          border: isUser ? '1px solid #3f3f46' : 'none',
+          background: isUser ? '#181818' : '#F5C300',
+          border: isUser ? '1px solid #262626' : 'none',
         }}
       >
         {isUser ? (
-          <User size={13} color="#a1a1aa" />
+          <User size={13} color="#a3a3a3" />
         ) : (
-          <Bot size={13} color="white" />
+          <Bot size={13} color="#0a0a0a" />
         )}
       </div>
 
@@ -69,16 +69,16 @@ function MessageBubble({
           maxWidth: '72%',
           padding: '10px 14px',
           borderRadius: isUser ? '16px 16px 16px 4px' : '16px 16px 4px 16px',
-          background: isUser ? 'var(--bg-elevated)' : 'linear-gradient(135deg, #5b21b6, #7c3aed)',
+          background: isUser ? 'var(--bg-elevated)' : '#F5C300',
           border: isUser ? '1px solid var(--border)' : 'none',
-          boxShadow: isUser ? 'none' : '0 4px 20px rgba(124, 58, 237, 0.3)',
+          boxShadow: isUser ? 'none' : '0 4px 20px rgba(245, 195, 0, 0.25)',
         }}
       >
         <div
           style={{
             fontSize: 14,
             lineHeight: 1.6,
-            color: isUser ? 'var(--text-primary)' : '#f3e8ff',
+            color: isUser ? 'var(--text-primary)' : '#0a0a0a',
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
           }}
@@ -88,7 +88,7 @@ function MessageBubble({
         <div
           style={{
             fontSize: 11,
-            color: isUser ? 'var(--text-muted)' : '#a78bfa80',
+            color: isUser ? 'var(--text-muted)' : '#0a0a0a80',
             marginTop: 4,
             textAlign: isUser ? 'left' : 'right',
           }}
@@ -188,14 +188,14 @@ export default async function ConversationDetailPage({
               width: 38,
               height: 38,
               borderRadius: '50%',
-              background: 'linear-gradient(135deg, #3b0764, #5b21b6)',
-              border: '2px solid #7c3aed40',
+              background: 'linear-gradient(135deg, #1a1400, #C49A00)',
+              border: '2px solid #F5C30040',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: 15,
               fontWeight: 700,
-              color: '#c4b5fd',
+              color: '#F5C300',
             }}
           >
             {(conversation.lead_name || conversation.lead_phone).charAt(0).toUpperCase()}
@@ -381,7 +381,7 @@ export default async function ConversationDetailPage({
             {
               label: 'Respuestas IA',
               value: messages.filter(m => m.role === 'assistant').length,
-              color: '#a855f7',
+              color: '#F5C300',
             },
           ].map(({ label, value, color }) => (
             <div

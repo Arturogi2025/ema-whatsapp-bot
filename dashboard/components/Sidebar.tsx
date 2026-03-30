@@ -43,22 +43,23 @@ export default function Sidebar() {
       <div style={{ padding: '4px 12px 24px', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div
           style={{
-            width: 32,
-            height: 32,
-            background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+            width: 34,
+            height: 34,
+            background: '#F5C300',
             borderRadius: 8,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
+            boxShadow: '0 0 16px rgba(245,195,0,0.3)',
           }}
         >
-          <Zap size={17} color="white" strokeWidth={2.5} fill="white" />
+          <Zap size={18} color="#0a0a0a" strokeWidth={2.5} fill="#0a0a0a" />
         </div>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-            Bolt
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1, letterSpacing: '0.02em', fontFamily: "'Barlow Condensed', sans-serif" }}>
+            BOLT<span style={{ color: '#F5C300' }}>.dev</span>
           </div>
-          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             Dashboard
           </div>
         </div>
@@ -103,7 +104,7 @@ export default function Sidebar() {
             >
               <Icon
                 size={16}
-                color={active ? '#a855f7' : 'currentColor'}
+                color={active ? '#F5C300' : 'currentColor'}
                 strokeWidth={active ? 2.5 : 2}
               />
               {label}
@@ -114,7 +115,7 @@ export default function Sidebar() {
                     width: 6,
                     height: 6,
                     borderRadius: '50%',
-                    background: '#7c3aed',
+                    background: '#F5C300',
                   }}
                 />
               )}

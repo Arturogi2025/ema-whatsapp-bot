@@ -82,13 +82,13 @@ function LoginForm() {
             style={{
               width: 52,
               height: 52,
-              background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+              background: 'linear-gradient(135deg, #F5C300, #FFD63A)',
               borderRadius: 14,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 16px',
-              boxShadow: '0 8px 32px rgba(124, 58, 237, 0.35)',
+              boxShadow: '0 8px 32px rgba(245, 195, 0, 0.3)',
             }}
           >
             <Zap size={26} color="white" strokeWidth={2.5} fill="white" />
@@ -149,7 +149,7 @@ function LoginForm() {
                   letterSpacing: '0.1em',
                 }}
                 onFocus={e => {
-                  if (!error) (e.target as HTMLInputElement).style.borderColor = '#7c3aed';
+                  if (!error) (e.target as HTMLInputElement).style.borderColor = '#F5C300';
                 }}
                 onBlur={e => {
                   if (!error) (e.target as HTMLInputElement).style.borderColor = 'var(--border)';
@@ -171,7 +171,7 @@ function LoginForm() {
               padding: '12px',
               background: loading || !password
                 ? 'var(--bg-elevated)'
-                : 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                : 'linear-gradient(135deg, #F5C300, #FFD63A)',
               border: loading || !password ? '1px solid var(--border)' : 'none',
               borderRadius: 9,
               color: loading || !password ? 'var(--text-muted)' : 'white',

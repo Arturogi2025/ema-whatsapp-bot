@@ -163,7 +163,7 @@ export default function ConversationActions({
               transition: 'border-color 0.2s',
               fontFamily: 'inherit',
             }}
-            onFocus={e => ((e.target as HTMLTextAreaElement).style.borderColor = '#7c3aed')}
+            onFocus={e => ((e.target as HTMLTextAreaElement).style.borderColor = '#F5C300')}
             onBlur={e => ((e.target as HTMLTextAreaElement).style.borderColor = 'var(--border)')}
           />
           {sendError && (
@@ -184,7 +184,7 @@ export default function ConversationActions({
             background:
               sending || !text.trim()
                 ? 'var(--bg-elevated)'
-                : 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                : 'linear-gradient(135deg, #F5C300, #F5C300)',
             color: sending || !text.trim() ? 'var(--text-muted)' : 'white',
             display: 'flex',
             alignItems: 'center',
