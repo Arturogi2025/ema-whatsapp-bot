@@ -63,6 +63,7 @@ export default async function handler(
     markAsRead(message.messageId).catch(() => {});
 
     const { notifyNewLead, notifyCallScheduled } = require('../../lib/email');
+    const { pushNewMessage, pushNewLead, pushCallScheduled } = require('../../lib/push');
 
     const conversation = await getOrCreateConversation(message.from, message.name);
 
@@ -121,6 +122,14 @@ export default async function handler(
     await saveMessage(conversation.id, 'assistant', aiResponse.text);
     await sendTextMessage(message.from, aiResponse.text);
 
+    // Push notification for every new user message
+    pushNewMessage({
+      name: message.name || conversation.lead_name,
+      phone: message.from,
+      preview: message.text,
+      conversationId: conversation.id,
+    }).catch(() => {});
+
     if (aiResponse.shouldSendPortfolio && aiResponse.detectedProjectType) {
       const examples = await getRelevantExamples(aiResponse.detectedProjectType, 3);
       for (const example of examples) {
@@ -162,6 +171,11 @@ export default async function handler(
         datetime: aiResponse.detectedDatetime,
         conversationId: conversation.id,
       }).catch(() => {});
+      pushCallScheduled({
+        name: message.name || conversation.lead_name,
+        datetime: aiResponse.detectedDatetime,
+        conversationId: conversation.id,
+      }).catch(() => {});
     }
 
     // Notify about new lead (first time project type is detected)
@@ -169,6 +183,11 @@ export default async function handler(
       notifyNewLead({
         name: message.name || conversation.lead_name,
         phone: message.from,
+        projectType: aiResponse.detectedProjectType,
+        conversationId: conversation.id,
+      }).catch(() => {});
+      pushNewLead({
+        name: message.name || conversation.lead_name,
         projectType: aiResponse.detectedProjectType,
         conversationId: conversation.id,
       }).catch(() => {});

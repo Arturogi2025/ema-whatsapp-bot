@@ -9,6 +9,7 @@ import {
   Zap,
   LogOut,
 } from 'lucide-react';
+import PushNotificationToggle from './PushNotificationToggle';
 
 const nav = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
@@ -129,6 +130,9 @@ export default function Sidebar() {
           borderTop: '1px solid var(--border)',
         }}
       >
+        <div style={{ marginBottom: 10 }}>
+          <PushNotificationToggle />
+        </div>
         <div className="sidebar-version" style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
           Bolt AI · WhatsApp · v1.0
         </div>
