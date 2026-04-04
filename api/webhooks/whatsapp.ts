@@ -21,7 +21,7 @@ export default async function handler(
   req: VercelRequest,
   res: VercelResponse
 ) {
-  // GET: Webhook verification
+  // ── GET: Webhook verification ──
   if (req.method === 'GET') {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
@@ -35,25 +35,26 @@ export default async function handler(
     return res.status(403).json({ error: 'Verification failed' });
   }
 
-  // POST: Incoming messages
+  // ── POST: Incoming messages ──
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { parseWebhookPayload, verifyWebhookSignature, sendTextMessage, sendImageMessage, sendContactCard, markAsRead } = require('../../lib/whatsapp');
-    const { getOrCreateConversation, getConversationHistory, saveMessage, upsertLead, markAsScheduled } = require('../../lib/conversation');
+    const { parseWebhookPayload, verifyWebhookSignature, sendTextMessage, sendContactCard, markAsRead } = require('../../lib/whatsapp');
+    const { getOrCreateConversation, getConversationHistory, saveMessage, upsertLead, markAsScheduled, getLeadByConversation } = require('../../lib/conversation');
     const { handleAIConversation } = require('../../lib/ai-handler');
-    const { getRelevantExamples } = require('../../lib/portfolio');
 
     const rawBody = await getRawBody(req);
     const body = JSON.parse(rawBody);
 
+    // ── Verify signature ──
     if (!verifyWebhookSignature(req, rawBody)) {
       console.error('[WhatsApp] Invalid signature');
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
+    // ── Parse payload ──
     const message = parseWebhookPayload(body);
     if (!message) {
       return res.status(200).json({ received: true });
@@ -65,10 +66,15 @@ export default async function handler(
     const { notifyNewLead, notifyCallScheduled } = require('../../lib/email');
     const { pushNewMessage, pushNewLead, pushCallScheduled } = require('../../lib/push');
 
+    // ── Get or create conversation ──
     const conversation = await getOrCreateConversation(message.from, message.name);
 
-    // If conversation was closed, reopen it on new message
+    // ── Handle conversation status ──
+    // Build context object for the AI based on current status.
+    let conversationContext: { status: string; scheduledDatetime?: string | null } | undefined;
+
     if (conversation.status === 'closed') {
+      // Reopen closed conversations — client wants to talk again
       const { createClient } = require('@supabase/supabase-js');
       const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL!,
@@ -78,29 +84,48 @@ export default async function handler(
         .from('conversations')
         .update({ status: 'active', updated_at: new Date().toISOString() })
         .eq('id', conversation.id);
+      console.log(`[WhatsApp] Reopened closed conversation ${conversation.id}`);
+
+    } else if (conversation.status === 'scheduled') {
+      // DON'T reopen scheduled conversations. Instead, fetch the scheduled
+      // datetime so we can give the AI context about the existing appointment.
+      const lead = await getLeadByConversation(conversation.id);
+      conversationContext = {
+        status: 'scheduled',
+        scheduledDatetime: lead?.preferred_datetime || null,
+      };
+      console.log(`[WhatsApp] Scheduled conversation ${conversation.id}, datetime: ${lead?.preferred_datetime}`);
     }
 
-    // Build the text to save — for media, include type indicator
+    // ── Save user message ──
     const textToSave = message.text;
     await saveMessage(conversation.id, 'user', textToSave);
 
-    // If AI is paused (manual mode), don't auto-respond
+    // ── If AI is paused (manual mode), don't auto-respond ──
     if (conversation.ai_paused) {
       console.log(`[WhatsApp] AI paused for conversation ${conversation.id}, skipping AI response`);
+      // Still send push notification so the team knows there's a new message.
+      // IMPORTANT: await before returning — Vercel kills the process after res.send()
+      await pushNewMessage({
+        name: message.name || conversation.lead_name,
+        phone: message.from,
+        preview: message.text,
+        conversationId: conversation.id,
+      }).catch((err: any) => console.error('[Push] pushNewMessage failed:', err));
       return res.status(200).json({ received: true, ai_paused: true });
     }
 
-    // For reactions and some media, skip AI response
+    // ── Skip AI for reactions ──
     if (message.mediaType === 'reaction') {
       return res.status(200).json({ received: true });
     }
 
+    // ── Load conversation history ──
     const history = await getConversationHistory(conversation.id, 20);
 
-    // Build context-aware prompt for media messages
+    // ── Build prompt for media messages ──
     let aiPromptText = message.text;
     if (message.mediaType !== 'text') {
-      // Give AI context about what was sent
       const mediaContextMap: Record<string, string> = {
         image: 'El usuario envió una imagen' + (message.mediaCaption ? ` con el texto: "${message.mediaCaption}"` : '. No puedes ver la imagen pero responde amablemente.'),
         audio: 'El usuario envió un mensaje de voz. No puedes escucharlo pero responde amablemente pidiendo que te escriba su mensaje.',
@@ -113,17 +138,29 @@ export default async function handler(
       aiPromptText = mediaContextMap[message.mediaType] || message.text;
     }
 
-    const aiResponse = await handleAIConversation(
-      aiPromptText,
-      history.filter((m: any) => m.role !== 'system'),
-      conversation.message_count
-    );
+    // ── Call AI handler ──
+    let aiResponse;
+    try {
+      aiResponse = await handleAIConversation(
+        aiPromptText,
+        history.filter((m: any) => m.role !== 'system'),
+        conversation.message_count,
+        conversationContext
+      );
+    } catch (aiError) {
+      console.error('[WhatsApp] AI handler failed:', aiError);
+      // Send a graceful fallback so the lead doesn't get ignored
+      const fallbackText = '¡Hola! Gracias por escribirnos 😊 En este momento estoy teniendo una dificultad técnica. Un asesor de Bolt se pondrá en contacto contigo a la brevedad.';
+      await saveMessage(conversation.id, 'assistant', fallbackText);
+      await sendTextMessage(message.from, fallbackText);
+      return res.status(200).json({ received: true, error: 'AI fallback sent' });
+    }
 
+    // ── Save and send AI response ──
     await saveMessage(conversation.id, 'assistant', aiResponse.text);
     await sendTextMessage(message.from, aiResponse.text);
 
-    // Collect all notification promises so we await them before returning
-    // (fire-and-forget causes Vercel to kill the process before push/email completes)
+    // ── Notifications (collected and awaited before returning) ──
     const notifications: Promise<any>[] = [];
 
     // Push notification for every new user message
@@ -136,90 +173,91 @@ export default async function handler(
       }).catch((err: any) => console.error('[Push] pushNewMessage failed:', err))
     );
 
-    if (aiResponse.shouldSendPortfolio && aiResponse.detectedProjectType) {
-      const examples = await getRelevantExamples(aiResponse.detectedProjectType, 3);
-      for (const example of examples) {
-        if (example.image_url) {
-          await sendImageMessage(
-            message.from,
-            example.image_url,
-            `*${example.title}*${example.description ? '\n' + example.description : ''}${example.url ? '\n🔗 ' + example.url : ''}`
-          );
-        } else if (example.url) {
-          await sendTextMessage(
-            message.from,
-            `*${example.title}*${example.description ? '\n' + example.description : ''}\n🔗 ${example.url}`
-          );
-        }
-      }
-    }
+    // ═══════════════════════════════════════════════════════════
+    // Only process lead/schedule logic if conversation is NOT already scheduled.
+    // Once scheduled, we don't want to:
+    //   - Re-detect project types
+    //   - Re-trigger scheduling (duplicate contact cards, notifications)
+    //   - Upsert lead data that could overwrite the scheduled status
+    // ═══════════════════════════════════════════════════════════
+    if (conversation.status !== 'scheduled') {
 
-    const isFirstProjectMention = aiResponse.detectedProjectType && conversation.message_count <= 3;
-    const isScheduleConfirmation = aiResponse.intent === 'confirm_schedule';
+      // ── Portfolio: AI now includes the portfolio URL naturally in its
+      // text response. No need to send separate image messages. ──
 
-    if (aiResponse.detectedProjectType || isScheduleConfirmation) {
-      await upsertLead({
-        conversationId: conversation.id,
-        name: message.name || undefined,
-        phone: message.from,
-        projectType: aiResponse.detectedProjectType || undefined,
-        preferredDatetime: aiResponse.detectedDatetime || undefined,
-        status: isScheduleConfirmation ? 'scheduled' : 'contacted',
-      });
-    }
+      // ── Upsert lead if project type or schedule detected ──
+      const isScheduleConfirmation = aiResponse.intent === 'confirm_schedule';
 
-    if (isScheduleConfirmation && aiResponse.detectedDatetime) {
-      await markAsScheduled(conversation.id, aiResponse.detectedDatetime);
-
-      // Send advisor contact card if BOLT_ADVISOR_PHONE is configured
-      const advisorPhone = process.env.BOLT_ADVISOR_PHONE;
-      const advisorName = process.env.BOLT_ADVISOR_NAME || 'Bolt - Asesor';
-      if (advisorPhone) {
-        try {
-          await sendContactCard(message.from, advisorName, advisorPhone, 'Bolt');
-        } catch (err) {
-          console.error('[WhatsApp] Failed to send advisor contact card:', err);
-        }
+      if (aiResponse.detectedProjectType || isScheduleConfirmation) {
+        await upsertLead({
+          conversationId: conversation.id,
+          name: message.name || undefined,
+          phone: message.from,
+          projectType: aiResponse.detectedProjectType || undefined,
+          preferredDatetime: aiResponse.detectedDatetime || undefined,
+          status: isScheduleConfirmation ? 'scheduled' : 'contacted',
+        });
       }
 
-      // Notify about scheduled call
-      notifications.push(
-        notifyCallScheduled({
-          name: message.name || conversation.lead_name,
-          phone: message.from,
-          datetime: aiResponse.detectedDatetime,
-          conversationId: conversation.id,
-        }).catch((err: any) => console.error('[Email] notifyCallScheduled failed:', err))
-      );
-      notifications.push(
-        pushCallScheduled({
-          name: message.name || conversation.lead_name,
-          datetime: aiResponse.detectedDatetime,
-          conversationId: conversation.id,
-        }).catch((err: any) => console.error('[Push] pushCallScheduled failed:', err))
-      );
-    }
+      // ── Handle schedule confirmation ──
+      if (isScheduleConfirmation && aiResponse.detectedDatetime) {
+        await markAsScheduled(conversation.id, aiResponse.detectedDatetime);
 
-    // Notify about new lead (first time project type is detected)
-    if (isFirstProjectMention) {
-      notifications.push(
-        notifyNewLead({
-          name: message.name || conversation.lead_name,
-          phone: message.from,
-          projectType: aiResponse.detectedProjectType,
-          conversationId: conversation.id,
-        }).catch((err: any) => console.error('[Email] notifyNewLead failed:', err))
-      );
-      notifications.push(
-        pushNewLead({
-          name: message.name || conversation.lead_name,
-          projectType: aiResponse.detectedProjectType,
-          conversationId: conversation.id,
-        }).catch((err: any) => console.error('[Push] pushNewLead failed:', err))
-      );
-    }
+        // Send advisor contact card
+        const advisorPhone = process.env.BOLT_ADVISOR_PHONE;
+        const advisorName = process.env.BOLT_ADVISOR_NAME || 'Bolt - Asesor';
+        if (advisorPhone) {
+          try {
+            await sendContactCard(message.from, advisorName, advisorPhone, 'Bolt');
+            console.log(`[WhatsApp] Sent advisor contact card to ${message.from}`);
+          } catch (err) {
+            console.error('[WhatsApp] Failed to send advisor contact card:', err);
+          }
+        }
 
-    // Wait for all notifications to complete before returning
+        // Notify about scheduled call
+        notifications.push(
+          notifyCallScheduled({
+            name: message.name || conversation.lead_name,
+            phone: message.from,
+            datetime: aiResponse.detectedDatetime,
+            conversationId: conversation.id,
+          }).catch((err: any) => console.error('[Email] notifyCallScheduled failed:', err))
+        );
+        notifications.push(
+          pushCallScheduled({
+            name: message.name || conversation.lead_name,
+            datetime: aiResponse.detectedDatetime,
+            conversationId: conversation.id,
+          }).catch((err: any) => console.error('[Push] pushCallScheduled failed:', err))
+        );
+      }
+
+      // ── Notify about new lead (first time project type is detected) ──
+      const isFirstProjectMention =
+        aiResponse.detectedProjectType && conversation.message_count <= 3;
+
+      if (isFirstProjectMention) {
+        notifications.push(
+          notifyNewLead({
+            name: message.name || conversation.lead_name,
+            phone: message.from,
+            projectType: aiResponse.detectedProjectType,
+            conversationId: conversation.id,
+          }).catch((err: any) => console.error('[Email] notifyNewLead failed:', err))
+        );
+        notifications.push(
+          pushNewLead({
+            name: message.name || conversation.lead_name,
+            projectType: aiResponse.detectedProjectType,
+            conversationId: conversation.id,
+          }).catch((err: any) => console.error('[Push] pushNewLead failed:', err))
+        );
+      }
+
+    } // end if (conversation.status !== 'scheduled')
+
+    // ── Wait for all notifications before returning ──
     await Promise.allSettled(notifications);
 
     return res.status(200).json({ received: true });

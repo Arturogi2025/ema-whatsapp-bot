@@ -1,19 +1,42 @@
 import { getSupabaseAdmin } from './supabase';
 
-interface Conversation {
+// ============================================================
+// Types
+// ============================================================
+export interface Conversation {
   id: string;
   lead_phone: string;
   lead_name: string | null;
-  status: string;
+  status: string;          // 'active' | 'scheduled' | 'closed'
+  ai_paused: boolean;      // true = manual mode, AI doesn't auto-respond
   source: string;
   message_count: number;
   created_at: string;
+  updated_at: string;
 }
 
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
+
+export interface LeadBolt {
+  id: string;
+  conversation_id: string;
+  name: string | null;
+  phone: string;
+  project_type: string | null;
+  objective: string | null;
+  preferred_datetime: string | null;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================
+// Conversation CRUD
+// ============================================================
 
 /**
  * Find existing conversation by phone, or create a new one.
@@ -115,6 +138,32 @@ export async function saveMessage(
     console.error('[Conversation] Failed to save message:', error);
     throw error;
   }
+}
+
+/**
+ * Get lead data by conversation ID.
+ * Used to retrieve scheduled datetime for already-scheduled conversations.
+ */
+export async function getLeadByConversation(
+  conversationId: string
+): Promise<LeadBolt | null> {
+  const supabase = getSupabaseAdmin();
+
+  const { data, error } = await supabase
+    .from('leads_bolt')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .single();
+
+  if (error) {
+    // PGRST116 = not found, which is normal for new conversations
+    if (error.code !== 'PGRST116') {
+      console.error('[Conversation] Failed to get lead:', error);
+    }
+    return null;
+  }
+
+  return data as LeadBolt;
 }
 
 /**

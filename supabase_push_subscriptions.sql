@@ -17,4 +17,4 @@ CREATE INDEX IF NOT EXISTS idx_push_subs_endpoint ON push_subscriptions (endpoin
 CREATE OR REPLACE TRIGGER push_subscriptions_updated_at
   BEFORE UPDATE ON push_subscriptions
   FOR EACH ROW
-  EXECUTE FUNCTION update_updated_at();
+  EXECUTE FUNCTION update_updated_at_column();
