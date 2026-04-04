@@ -2,9 +2,32 @@ import Anthropic from '@anthropic-ai/sdk';
 import { getRelevantExamples, formatPortfolioText, detectCategory } from './portfolio';
 
 // ============================================================
-// System prompt — EXACTAMENTE como está en el PDF (Sección 5)
+// System prompt — dynamically includes current date/time
 // ============================================================
-const SYSTEM_PROMPT = `Eres el asistente virtual de Bolt, una agencia de desarrollo web profesional con sede en Mexico.
+const BOLT_ADVISOR_PHONE = process.env.BOLT_ADVISOR_PHONE || '';
+
+function buildSystemPrompt(): string {
+  // Current date/time in Mexico City timezone
+  const now = new Date();
+  const mexicoTime = now.toLocaleString('es-MX', {
+    timeZone: 'America/Mexico_City',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  const advisorHandoff = BOLT_ADVISOR_PHONE
+    ? `\n- Al confirmar horario: confirma con entusiasmo, menciona el dia y hora EN FORMATO ABSOLUTO (nunca digas "manana", di el dia exacto como "jueves 4 de abril"). Luego di: "A partir de ahora, tu asesor personalizado de Bolt te dara seguimiento por WhatsApp al numero ${BOLT_ADVISOR_PHONE}. El se pondra en contacto contigo para enviarte el link de la reunion. Cualquier duda, puedes escribirle directamente."`
+    : '\n- Al confirmar horario: "Perfecto, queda agendado. Te enviamos el link a la brevedad."';
+
+  return `Eres el asistente virtual de Bolt, una agencia de desarrollo web profesional con sede en Mexico.
+
+FECHA Y HORA ACTUAL: ${mexicoTime}
+IMPORTANTE: Siempre usa fechas absolutas en tus respuestas (ejemplo: "jueves 4 de abril" en vez de "manana"). Cuando el usuario diga "manana", convierte a la fecha real. Cuando el usuario pregunte por su cita, responde con la fecha absoluta, no relativa.
 
 Objetivo:
 1. Responder de forma calida, profesional y concisa
@@ -21,15 +44,15 @@ Reglas:
 - NUNCA preguntes por presupuesto
 - NUNCA mandes a Calendly o similar
 - Si preguntan si eres bot: "Soy el asistente virtual de Bolt. Si prefieres hablar con alguien del equipo directamente, con gusto te conecto"
-- Maximo 3 preguntas antes de proponer llamada
-- Al confirmar horario: "Perfecto, queda agendado. Te enviamos el link a la brevedad."
-- Despues de confirmar, el flujo TERMINA
+- Maximo 3 preguntas antes de proponer llamada${advisorHandoff}
+- Despues de confirmar y hacer el handoff al asesor, el flujo TERMINA. Si el cliente escribe despues, responde amablemente que su asesor se comunicara pronto.
 
 Servicios: Paginas web, Tiendas en linea, Landing pages, Rediseno, Sistemas a la medida
 
 Diferenciadores: Diseno premium (no plantillas), Entrega rapida, SEO, Soporte en espanol, WhatsApp integrado
 
 Portafolio: Selecciona 2-3 ejemplos relevantes segun tipo de proyecto mencionado.`;
+}
 
 // ============================================================
 // Response types
@@ -146,7 +169,7 @@ export async function handleAIConversation(
   }
 
   if (intent === 'confirm_schedule') {
-    scheduleNudge = '\n\n[CONTEXTO INTERNO] El cliente parece estar confirmando un horario. Confirma con entusiasmo: "Perfecto, queda agendado. Te enviamos el link a la brevedad." y cierra el flujo.';
+    scheduleNudge = '\n\n[CONTEXTO INTERNO] El cliente parece estar confirmando un horario. Confirma con entusiasmo usando la FECHA ABSOLUTA (dia de la semana + numero + mes, NUNCA "manana"). Haz el handoff al asesor como indican las reglas y cierra el flujo.';
   }
 
   // Build messages array for Claude
@@ -167,7 +190,7 @@ export async function handleAIConversation(
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 150,
     temperature: 0.6,
-    system: SYSTEM_PROMPT + portfolioContext + scheduleNudge,
+    system: buildSystemPrompt() + portfolioContext + scheduleNudge,
     messages,
   });
 

@@ -41,7 +41,7 @@ export default async function handler(
   }
 
   try {
-    const { parseWebhookPayload, verifyWebhookSignature, sendTextMessage, sendImageMessage, markAsRead } = require('../../lib/whatsapp');
+    const { parseWebhookPayload, verifyWebhookSignature, sendTextMessage, sendImageMessage, sendContactCard, markAsRead } = require('../../lib/whatsapp');
     const { getOrCreateConversation, getConversationHistory, saveMessage, upsertLead, markAsScheduled } = require('../../lib/conversation');
     const { handleAIConversation } = require('../../lib/ai-handler');
     const { getRelevantExamples } = require('../../lib/portfolio');
@@ -170,6 +170,18 @@ export default async function handler(
 
     if (isScheduleConfirmation && aiResponse.detectedDatetime) {
       await markAsScheduled(conversation.id, aiResponse.detectedDatetime);
+
+      // Send advisor contact card if BOLT_ADVISOR_PHONE is configured
+      const advisorPhone = process.env.BOLT_ADVISOR_PHONE;
+      const advisorName = process.env.BOLT_ADVISOR_NAME || 'Bolt - Asesor';
+      if (advisorPhone) {
+        try {
+          await sendContactCard(message.from, advisorName, advisorPhone, 'Bolt');
+        } catch (err) {
+          console.error('[WhatsApp] Failed to send advisor contact card:', err);
+        }
+      }
+
       // Notify about scheduled call
       notifications.push(
         notifyCallScheduled({

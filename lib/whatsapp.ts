@@ -334,6 +334,55 @@ export async function sendDocumentMessage(
 /**
  * Mark a message as read (blue checkmarks).
  */
+/**
+ * Send a contact card (vCard) via WhatsApp
+ */
+export async function sendContactCard(
+  to: string,
+  contactName: string,
+  contactPhone: string,
+  orgName: string = 'Bolt'
+): Promise<void> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  const [firstName, ...rest] = contactName.split(' ');
+  const lastName = rest.join(' ') || '';
+
+  await fetch(
+    `${WHATSAPP_API_URL}/${phoneNumberId}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to,
+        type: 'contacts',
+        contacts: [
+          {
+            name: {
+              formatted_name: contactName,
+              first_name: firstName,
+              last_name: lastName,
+            },
+            phones: [
+              {
+                phone: contactPhone,
+                type: 'WORK',
+                wa_id: contactPhone.replace(/\D/g, ''),
+              },
+            ],
+            org: { company: orgName },
+          },
+        ],
+      }),
+    }
+  );
+}
+
 export async function markAsRead(messageId: string): Promise<void> {
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
