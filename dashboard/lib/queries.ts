@@ -194,6 +194,110 @@ export async function getCityDistribution() {
     .sort((a, b) => b.count - a.count);
 }
 
+/** Get recent activity feed (new conversations, scheduled calls, new leads) */
+export async function getRecentActivity(limit = 15) {
+  const supabase = getSupabaseAdmin();
+  const threeDaysAgo = subDays(new Date(), 3).toISOString();
+
+  // Fetch recent conversations, leads, and scheduled events in parallel
+  const [recentConvs, recentLeads, scheduledConvs] = await Promise.all([
+    supabase
+      .from('conversations')
+      .select('id, lead_phone, lead_name, status, created_at, updated_at, message_count')
+      .gte('updated_at', threeDaysAgo)
+      .order('updated_at', { ascending: false })
+      .limit(20),
+    supabase
+      .from('leads_bolt')
+      .select('id, name, phone, project_type, preferred_datetime, status, created_at, conversation_id')
+      .gte('created_at', threeDaysAgo)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('conversations')
+      .select('id, lead_phone, lead_name, updated_at')
+      .eq('status', 'scheduled')
+      .order('updated_at', { ascending: false })
+      .limit(5),
+  ]);
+
+  type ActivityItem = {
+    id: string;
+    type: 'new_conversation' | 'new_lead' | 'scheduled' | 'message';
+    title: string;
+    subtitle: string;
+    timestamp: string;
+    conversationId?: string;
+  };
+
+  const items: ActivityItem[] = [];
+
+  // New conversations
+  for (const c of recentConvs.data || []) {
+    items.push({
+      id: `conv-${c.id}`,
+      type: 'new_conversation',
+      title: c.lead_name || c.lead_phone,
+      subtitle: `Nueva conversación · ${c.message_count || 0} mensajes`,
+      timestamp: c.created_at,
+      conversationId: c.id,
+    });
+  }
+
+  // New leads with project type
+  for (const l of recentLeads.data || []) {
+    const projectLabels: Record<string, string> = {
+      web: 'Página web', ecommerce: 'Tienda online', landing: 'Landing page', custom: 'Sistema a medida',
+    };
+    items.push({
+      id: `lead-${l.id}`,
+      type: 'new_lead',
+      title: l.name || l.phone,
+      subtitle: `Nuevo lead · ${projectLabels[l.project_type || ''] || l.project_type || 'Sin tipo'}`,
+      timestamp: l.created_at,
+      conversationId: l.conversation_id,
+    });
+  }
+
+  // Scheduled calls
+  for (const s of scheduledConvs.data || []) {
+    items.push({
+      id: `sched-${s.id}`,
+      type: 'scheduled',
+      title: s.lead_name || s.lead_phone,
+      subtitle: 'Llamada agendada',
+      timestamp: s.updated_at,
+      conversationId: s.id,
+    });
+  }
+
+  // Sort by timestamp, deduplicate by conversationId (keep most recent)
+  const seen = new Set<string>();
+  const unique = items
+    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .filter(item => {
+      const key = item.conversationId || item.id;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  return unique.slice(0, limit);
+}
+
+/** Get upcoming scheduled calls */
+export async function getUpcomingCalls() {
+  const supabase = getSupabaseAdmin();
+  const { data } = await supabase
+    .from('leads_bolt')
+    .select('id, name, phone, preferred_datetime, conversation_id')
+    .eq('status', 'scheduled')
+    .not('preferred_datetime', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(5);
+  return data || [];
+}
+
 /** Get average first response time in minutes */
 export async function getAvgResponseTime(): Promise<number | null> {
   const supabase = getSupabaseAdmin();

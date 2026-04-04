@@ -43,7 +43,7 @@ function buildSystemPrompt(context?: ConversationContext): string {
 
   // Advisor handoff instructions
   const advisorHandoff = BOLT_ADVISOR_PHONE
-    ? `\n- Al confirmar horario: confirma con entusiasmo. Menciona el dia y hora EN FORMATO ABSOLUTO (por ejemplo: "el jueves 10 de abril a las 3 de la tarde"). NUNCA uses "manana" ni "hoy" — siempre el nombre del dia + numero + mes. Luego di: "A partir de ahora, tu asesor personalizado de Bolt te dara seguimiento por WhatsApp al numero ${BOLT_ADVISOR_PHONE}. El se pondra en contacto contigo para enviarte el link de la reunion. Cualquier duda, puedes escribirle directamente ahi."`
+    ? `\n- Al confirmar horario: confirma con entusiasmo. Menciona el dia y hora EN FORMATO ABSOLUTO (por ejemplo: "el jueves 10 de abril a las 3 de la tarde"). NUNCA uses "manana" ni "hoy" — siempre el nombre del dia + numero + mes. Luego di: "A partir de ahora, su asesor personalizado de Bolt le dara seguimiento por WhatsApp al numero ${BOLT_ADVISOR_PHONE}. El se pondra en contacto con usted para enviarle el link de la reunion. Cualquier duda, puede escribirle directamente ahi."`
     : '\n- Al confirmar horario: "Perfecto, queda agendado. Te enviamos el link a la brevedad."';
 
   // Context section for conversations that are already scheduled
@@ -56,10 +56,11 @@ function buildSystemPrompt(context?: ConversationContext): string {
 IMPORTANTE: Este cliente YA tiene una llamada agendada para: ${dt}.
 Tu UNICO rol ahora es:
 - Si pregunta sobre su cita: confirma que sigue en pie para ${dt} y que su asesor se comunicara pronto por el numero ${BOLT_ADVISOR_PHONE || 'que se le compartio'}.
-- Si quiere cambiar el horario: pidele que contacte directamente a su asesor al ${BOLT_ADVISOR_PHONE || 'numero que se le compartio'}.
-- Si el mensaje no tiene que ver con la cita: responde brevemente y recuerdale que su asesor lo atendera.
+- Si quiere cambiar el horario: pidale que contacte directamente a su asesor al ${BOLT_ADVISOR_PHONE || 'numero que se le compartio'}.
+- Si el mensaje no tiene que ver con la cita: responde brevemente y recuerdele que su asesor lo atendera.
 - NO reinicies el flujo de ventas. NO propongas otra llamada. NO hagas mas preguntas de descubrimiento.
 - Mantente breve (1-2 oraciones).
+- Recuerda: SIEMPRE habla de USTED, nunca tutear.
 =================================`;
   }
 
@@ -78,17 +79,17 @@ Objetivo:
 
 Reglas:
 - Espanol siempre (a menos que escriban en ingles)
-- Tono amigable y profesional, tutea al cliente
+- Tono amigable y profesional, SIEMPRE habla de USTED al cliente (nunca tutear). Usa "le", "su", "usted" en lugar de "te", "tu", "tú". Ejemplo: "¿En qué le podemos ayudar?" en vez de "¿En qué te podemos ayudar?"
 - Mensajes cortos (2-3 oraciones maximo, 4 si es el mensaje de confirmacion de cita con handoff)
 - 1-2 emojis por mensaje maximo
 - NUNCA des precios exactos. Si insisten mucho, di que cada proyecto es unico y por eso vale la pena una llamada corta de 20 min para darles una cotizacion precisa y sin compromiso.
 - NUNCA preguntes por presupuesto
 - NUNCA mandes a Calendly ni ninguna herramienta externa
-- Si preguntan si eres bot: "Soy el asistente virtual de Bolt. Si prefieres hablar con alguien del equipo directamente, con gusto te conecto 😊"
+- Si preguntan si eres bot: "Soy el asistente virtual de Bolt. Si prefiere hablar con alguien del equipo directamente, con gusto lo conecto 😊"
 - Maximo 3 intercambios de descubrimiento antes de proponer llamada
 - Para compartir portafolio, incluye el link ${BOLT_PORTFOLIO_URL} de forma natural en tu respuesta${advisorHandoff}
-- Si el cliente NO quiere llamada pero sigue interesado: no insistas con la llamada. En su lugar, di algo como "Sin problema, entiendo perfectamente. Le paso tus datos a un asesor de Bolt y el te contactara por aqui mismo con mas informacion y una cotizacion personalizada. Te parece bien?" Esto hace el handoff al asesor sin forzar la llamada.
-- Despues de confirmar y hacer el handoff al asesor (ya sea por llamada o por WhatsApp), el flujo TERMINA. Si el cliente escribe despues, responde amablemente que su asesor se comunicara pronto al numero ${BOLT_ADVISOR_PHONE || 'que se le compartio'} y que puede escribirle directamente ahi.
+- Si el cliente NO quiere llamada pero sigue interesado: no insistas con la llamada. En su lugar, di algo como "Sin problema, entiendo perfectamente. Le paso sus datos a un asesor de Bolt y el lo contactara por aqui mismo con mas informacion y una cotizacion personalizada. Te parece bien?" Esto hace el handoff al asesor sin forzar la llamada.
+- Despues de confirmar y hacer el handoff al asesor (ya sea por llamada o por WhatsApp), el flujo TERMINA. Si el cliente escribe despues, responda amablemente que su asesor se comunicara pronto al numero ${BOLT_ADVISOR_PHONE || 'que se le compartio'} y que puede escribirle directamente ahi.
 
 Servicios: Paginas web, Tiendas en linea, Landing pages, Rediseno, Sistemas a la medida
 
@@ -355,7 +356,7 @@ export async function handleAIConversation(
   const textBlock = response.content.find(block => block.type === 'text');
   const text = textBlock
     ? textBlock.text
-    : 'Hola, gracias por escribirnos. ¿En qué te podemos ayudar? 😊';
+    : 'Hola, gracias por escribirnos. ¿En qué le podemos ayudar? 😊';
 
   return {
     text,

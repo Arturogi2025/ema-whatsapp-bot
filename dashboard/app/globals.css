@@ -38,6 +38,13 @@ html, body {
   height: 100%;
 }
 
+/* iOS viewport fix — respect safe areas */
+@supports (padding: env(safe-area-inset-bottom)) {
+  html {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -117,6 +124,40 @@ h1, h2, h3, .font-display {
 
 .right-sidebar-toggle {
   display: none !important;
+}
+
+/* ========= Table scroll wrapper — horizontal scroll with indicators ========= */
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* Subtle gradient fade on right edge to indicate scrollable content */
+.table-scroll-wrapper::after {
+  content: '';
+  position: sticky;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 24px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--bg-surface));
+  display: none;
+}
+
+/* ========= Activity feed styles ========= */
+.activity-feed-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.1s;
+}
+
+.activity-feed-item:last-child {
+  border-bottom: none;
 }
 
 /* ========= Responsive ========= */
@@ -210,15 +251,20 @@ h1, h2, h3, .font-display {
     display: flex !important;
   }
 
-  /* Pad bottom to avoid bottom nav overlap */
+  /* Pad bottom for nav bar + safe area */
   main {
-    padding-bottom: 64px !important;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* Horizontal scrollable tables on mobile */
   .table-scroll-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Show scroll fade indicator */
+  .table-scroll-wrapper::after {
+    display: block;
   }
 
   table {
@@ -232,9 +278,9 @@ h1, h2, h3, .font-display {
     gap: 8px !important;
   }
 
-  /* Overview page padding */
+  /* Overview page padding — add top safe area */
   .overview-page {
-    padding: 16px !important;
+    padding: max(16px, env(safe-area-inset-top, 16px)) 16px 16px !important;
   }
 
   /* Charts row — stack vertically on mobile */
@@ -257,9 +303,9 @@ h1, h2, h3, .font-display {
     display: flex !important;
   }
 
-  /* Conversation detail: compact header on mobile */
+  /* Conversation detail: account for bottom nav + safe area */
   .conversation-detail {
-    height: calc(100vh - 64px) !important;
+    height: calc(100vh - 72px - env(safe-area-inset-bottom, 0px)) !important;
   }
 
   /* Chat header compact on mobile */
@@ -278,6 +324,41 @@ h1, h2, h3, .font-display {
     flex: 1 1 calc(50% - 6px) !important;
     min-width: 140px !important;
   }
+
+  /* Recent conversations table — allow horizontal scroll */
+  .overview-recent-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .overview-recent-table table {
+    min-width: 520px;
+  }
+
+  /* Activity feed compact on mobile */
+  .activity-feed-item {
+    padding: 10px 0;
+    gap: 10px;
+  }
+
+  /* Show push toggle in Overview header on mobile (since bottom nav no longer has it) */
+  .mobile-push-toggle {
+    display: block !important;
+  }
+
+  /* Pages padding on mobile */
+  .overview-page,
+  .leads-page,
+  .conversations-page {
+    padding: max(16px, env(safe-area-inset-top, 16px)) 12px 16px !important;
+  }
+
+  /* Filters row scroll on mobile */
+  .filters-row {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;
+  }
 }
 
 /* Small mobile (< 480px) */
@@ -288,7 +369,7 @@ h1, h2, h3, .font-display {
 
   main {
     margin-left: 0 !important;
-    padding-bottom: 70px !important;
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .kpi-grid {

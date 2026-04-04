@@ -27,7 +27,8 @@ export default function LeadsTable({ leads, emptyMessage }: { leads: Lead[]; emp
   }
 
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
       <thead>
         <tr>
           {['Lead', 'Teléfono', 'Tipo de proyecto', 'Horario preferido', 'Estado', 'Registrado'].map(h => (
@@ -94,5 +95,6 @@ export default function LeadsTable({ leads, emptyMessage }: { leads: Lead[]; emp
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
