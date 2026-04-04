@@ -122,13 +122,19 @@ export default async function handler(
     await saveMessage(conversation.id, 'assistant', aiResponse.text);
     await sendTextMessage(message.from, aiResponse.text);
 
+    // Collect all notification promises so we await them before returning
+    // (fire-and-forget causes Vercel to kill the process before push/email completes)
+    const notifications: Promise<any>[] = [];
+
     // Push notification for every new user message
-    pushNewMessage({
-      name: message.name || conversation.lead_name,
-      phone: message.from,
-      preview: message.text,
-      conversationId: conversation.id,
-    }).catch(() => {});
+    notifications.push(
+      pushNewMessage({
+        name: message.name || conversation.lead_name,
+        phone: message.from,
+        preview: message.text,
+        conversationId: conversation.id,
+      }).catch((err: any) => console.error('[Push] pushNewMessage failed:', err))
+    );
 
     if (aiResponse.shouldSendPortfolio && aiResponse.detectedProjectType) {
       const examples = await getRelevantExamples(aiResponse.detectedProjectType, 3);
@@ -165,33 +171,44 @@ export default async function handler(
     if (isScheduleConfirmation && aiResponse.detectedDatetime) {
       await markAsScheduled(conversation.id, aiResponse.detectedDatetime);
       // Notify about scheduled call
-      notifyCallScheduled({
-        name: message.name || conversation.lead_name,
-        phone: message.from,
-        datetime: aiResponse.detectedDatetime,
-        conversationId: conversation.id,
-      }).catch(() => {});
-      pushCallScheduled({
-        name: message.name || conversation.lead_name,
-        datetime: aiResponse.detectedDatetime,
-        conversationId: conversation.id,
-      }).catch(() => {});
+      notifications.push(
+        notifyCallScheduled({
+          name: message.name || conversation.lead_name,
+          phone: message.from,
+          datetime: aiResponse.detectedDatetime,
+          conversationId: conversation.id,
+        }).catch((err: any) => console.error('[Email] notifyCallScheduled failed:', err))
+      );
+      notifications.push(
+        pushCallScheduled({
+          name: message.name || conversation.lead_name,
+          datetime: aiResponse.detectedDatetime,
+          conversationId: conversation.id,
+        }).catch((err: any) => console.error('[Push] pushCallScheduled failed:', err))
+      );
     }
 
     // Notify about new lead (first time project type is detected)
     if (isFirstProjectMention) {
-      notifyNewLead({
-        name: message.name || conversation.lead_name,
-        phone: message.from,
-        projectType: aiResponse.detectedProjectType,
-        conversationId: conversation.id,
-      }).catch(() => {});
-      pushNewLead({
-        name: message.name || conversation.lead_name,
-        projectType: aiResponse.detectedProjectType,
-        conversationId: conversation.id,
-      }).catch(() => {});
+      notifications.push(
+        notifyNewLead({
+          name: message.name || conversation.lead_name,
+          phone: message.from,
+          projectType: aiResponse.detectedProjectType,
+          conversationId: conversation.id,
+        }).catch((err: any) => console.error('[Email] notifyNewLead failed:', err))
+      );
+      notifications.push(
+        pushNewLead({
+          name: message.name || conversation.lead_name,
+          projectType: aiResponse.detectedProjectType,
+          conversationId: conversation.id,
+        }).catch((err: any) => console.error('[Push] pushNewLead failed:', err))
+      );
     }
+
+    // Wait for all notifications to complete before returning
+    await Promise.allSettled(notifications);
 
     return res.status(200).json({ received: true });
   } catch (error) {
