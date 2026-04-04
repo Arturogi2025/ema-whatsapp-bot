@@ -2,6 +2,15 @@
   "functions": {
     "api/webhooks/whatsapp.ts": {
       "maxDuration": 30
+    },
+    "api/cron/send-reminders.ts": {
+      "maxDuration": 60
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/cron/send-reminders",
+      "schedule": "*/30 * * * *"
+    }
+  ]
 }

@@ -9,11 +9,16 @@ import {
 } from 'lucide-react';
 import QuickReplies from '@/components/QuickReplies';
 import AiSuggestions from '@/components/AiSuggestions';
+import TemplatePicker from '@/components/TemplatePicker';
 
 interface ConversationActionsProps {
   conversationId: string;
   initialAiPaused: boolean;
   conversationStatus?: string;
+  leadName?: string | null;
+  leadStatus?: string;
+  projectType?: string | null;
+  preferredDatetime?: string | null;
 }
 
 type MediaType = 'image' | 'document' | 'audio' | 'location';
@@ -29,6 +34,10 @@ export default function ConversationActions({
   conversationId,
   initialAiPaused,
   conversationStatus = 'active',
+  leadName,
+  leadStatus,
+  projectType,
+  preferredDatetime,
 }: ConversationActionsProps) {
   const router = useRouter();
   const [text, setText] = useState('');
@@ -292,6 +301,16 @@ export default function ConversationActions({
           </button>
         </div>
       </div>
+
+      {/* Template picker for when 24h window expires */}
+      <TemplatePicker
+        conversationId={conversationId}
+        leadName={leadName}
+        leadStatus={leadStatus}
+        conversationStatus={status}
+        projectType={projectType}
+        preferredDatetime={preferredDatetime}
+      />
 
       {/* Quick replies */}
       <QuickReplies onSelect={(t) => setText(t)} />

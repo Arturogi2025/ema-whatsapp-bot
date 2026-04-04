@@ -383,6 +383,60 @@ export async function sendContactCard(
   );
 }
 
+/**
+ * Send a template message via WhatsApp Cloud API.
+ * Used when the 24-hour messaging window has expired.
+ */
+export async function sendTemplateMessage(
+  to: string,
+  templateName: string,
+  languageCode: string = 'es_MX',
+  components?: Array<{
+    type: 'header' | 'body' | 'button';
+    parameters?: Array<{ type: 'text'; text: string } | { type: 'image'; image: { link: string } }>;
+    sub_type?: string;
+    index?: number;
+  }>
+): Promise<{ ok: boolean; error?: string }> {
+  const token = process.env.WHATSAPP_ACCESS_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+
+  const templatePayload: any = {
+    messaging_product: 'whatsapp',
+    recipient_type: 'individual',
+    to,
+    type: 'template',
+    template: {
+      name: templateName,
+      language: { code: languageCode },
+    },
+  };
+
+  if (components && components.length > 0) {
+    templatePayload.template.components = components;
+  }
+
+  const response = await fetch(
+    `${WHATSAPP_API_URL}/${phoneNumberId}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(templatePayload),
+    }
+  );
+
+  if (!response.ok) {
+    const err = await response.text();
+    console.error('[WhatsApp] Send template failed:', err);
+    return { ok: false, error: err };
+  }
+
+  return { ok: true };
+}
+
 export async function markAsRead(messageId: string): Promise<void> {
   const token = process.env.WHATSAPP_ACCESS_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;

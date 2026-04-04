@@ -433,6 +433,10 @@ export default async function ConversationDetailPage({
           conversationId={params.id}
           initialAiPaused={(conversation as any).ai_paused ?? false}
           conversationStatus={conversation.status}
+          leadName={lead?.name || conversation.lead_name}
+          leadStatus={lead?.status}
+          projectType={lead?.project_type}
+          preferredDatetime={lead?.preferred_datetime}
         />
       </div>
 
