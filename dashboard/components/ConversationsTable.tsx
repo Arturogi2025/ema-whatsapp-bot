@@ -30,7 +30,7 @@ export default function ConversationsTable({ conversations }: { conversations: C
     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
       <thead>
         <tr>
-          {['Lead', 'Último mensaje', 'Estado', 'IA', 'Mensajes', 'Fuente', 'Inicio', 'Última actividad'].map(h => (
+          {['Lead', 'Último mensaje', 'Estado', 'IA', 'Razón pausa', 'Mensajes', 'Fuente', 'Inicio', 'Última actividad'].map(h => (
             <th key={h} style={{ padding: '12px 20px', textAlign: 'left', fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '1px solid var(--border)', whiteSpace: 'nowrap', background: 'var(--bg-elevated)' }}>
               {h}
             </th>
@@ -142,6 +142,29 @@ export default function ConversationsTable({ conversations }: { conversations: C
                     Activa
                   </span>
                 </div>
+              )}
+            </td>
+
+            {/* Pause reason column */}
+            <td style={{ padding: '14px 20px', maxWidth: 180 }}>
+              {conv.ai_paused && conv.auto_pause_reason ? (
+                <span style={{
+                  fontSize: 11,
+                  color: '#f59e0b',
+                  lineHeight: 1.3,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical' as const,
+                  overflow: 'hidden',
+                }}>
+                  {conv.auto_pause_reason === 'schedule_confirmed' ? 'Llamada agendada'
+                    : conv.auto_pause_reason === 'customer_deferred' ? 'Cliente no disponible'
+                    : conv.auto_pause_reason}
+                </span>
+              ) : conv.ai_paused ? (
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>Manual</span>
+              ) : (
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>—</span>
               )}
             </td>
 
