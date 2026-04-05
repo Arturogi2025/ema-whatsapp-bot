@@ -94,12 +94,13 @@ export async function POST(
       };
     }
 
-    // Save message to DB
+    // Save message to DB (tagged as 'manual' since it's sent from the dashboard)
     await supabase.from('messages').insert({
       conversation_id: params.id,
       role: 'assistant',
       content: messageContent,
       timestamp: new Date().toISOString(),
+      sent_by: 'manual',
     });
 
     // Update conversation updated_at

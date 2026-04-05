@@ -11,11 +11,15 @@ export interface Conversation {
   source: string;
   message_count: number;
   ai_paused: boolean;
+  auto_pause_reason?: string | null;
+  last_customer_message_at?: string | null;
+  followup_stage?: number;
   created_at: string;
   updated_at: string;
   // Computed fields
   last_message?: string | null;
   last_message_role?: string | null;
+  last_message_sent_by?: string | null;
 }
 
 export interface Message {
@@ -26,6 +30,8 @@ export interface Message {
   timestamp: string;
   media_type?: string | null;
   media_url?: string | null;
+  /** For assistant messages: 'ai' | 'manual' | 'cron' | 'template' */
+  sent_by?: string | null;
 }
 
 export interface Lead {

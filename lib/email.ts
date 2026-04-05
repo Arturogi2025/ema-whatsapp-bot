@@ -133,6 +133,50 @@ export async function notifyNewLead(params: {
   });
 }
 
+/**
+ * Notify about follow-up failures so the team can intervene manually
+ */
+export async function notifyFollowupFailure(params: {
+  failures: Array<{ phone: string; name: string; stage: string; error: string }>;
+}): Promise<void> {
+  if (params.failures.length === 0) return;
+
+  const time = new Date().toLocaleString('es-MX', {
+    timeZone: 'America/Mexico_City',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+
+  const failureRows = params.failures
+    .map(f => row(f.name || f.phone, `Stage: ${f.stage} — Error: ${f.error.substring(0, 100)}`))
+    .join('');
+
+  const html = emailTemplate(
+    `⚠️ ${params.failures.length} follow-up(s) fallidos`,
+    badge('#ef4444', `⚠️ ${params.failures.length} errores`),
+    row('Hora', time) +
+    row('Total fallidos', String(params.failures.length)) +
+    failureRows,
+    `<div style="margin-top:16px;padding:12px;background:#27272a;border-radius:8px;">
+      <p style="color:#fbbf24;font-size:12px;margin:0;">
+        Estos leads no recibieron su follow-up automático. Puede ser que el template no esté aprobado por Meta
+        o que la ventana de 24h expiró. Revisa y haz seguimiento manual.
+      </p>
+    </div>
+    <div style="margin-top:16px;">
+      <a href="https://crm.boltdevlabs.com/conversations"
+         style="display:inline-block;padding:10px 20px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">
+        Ver conversaciones →
+      </a>
+    </div>`
+  );
+
+  await sendEmail({
+    subject: `⚠️ ${params.failures.length} follow-up(s) de WhatsApp fallaron`,
+    html,
+  });
+}
+
 export async function notifyCallScheduled(params: {
   name: string | null;
   phone: string;

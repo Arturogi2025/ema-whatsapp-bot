@@ -9,8 +9,11 @@ export interface Conversation {
   lead_name: string | null;
   status: string;          // 'active' | 'scheduled' | 'closed'
   ai_paused: boolean;      // true = manual mode, AI doesn't auto-respond
+  auto_pause_reason: string | null;  // why AI was auto-paused
   source: string;
   message_count: number;
+  last_customer_message_at: string | null;
+  followup_stage: number;  // 0-5, tracks automated follow-up progress
   created_at: string;
   updated_at: string;
 }
@@ -120,11 +123,13 @@ export async function getConversationHistory(
 
 /**
  * Save a message to the conversation.
+ * @param sentBy — For assistant messages: 'ai' | 'manual' | 'cron' | 'template'. Null for user/system messages.
  */
 export async function saveMessage(
   conversationId: string,
   role: 'user' | 'assistant' | 'system',
-  content: string
+  content: string,
+  sentBy?: 'ai' | 'manual' | 'cron' | 'template' | null
 ): Promise<void> {
   const supabase = getSupabaseAdmin();
 
@@ -132,11 +137,20 @@ export async function saveMessage(
     conversation_id: conversationId,
     role,
     content,
+    sent_by: role === 'assistant' ? (sentBy || 'ai') : null,
   });
 
   if (error) {
     console.error('[Conversation] Failed to save message:', error);
     throw error;
+  }
+
+  // Track when the customer last sent a message (for follow-up timing)
+  if (role === 'user') {
+    await supabase
+      .from('conversations')
+      .update({ last_customer_message_at: new Date().toISOString() })
+      .eq('id', conversationId);
   }
 }
 
@@ -210,6 +224,41 @@ export async function upsertLead(data: {
       status: data.status || 'new',
     });
   }
+}
+
+/**
+ * Auto-pause AI on a conversation with a reason.
+ */
+export async function autoPauseAI(
+  conversationId: string,
+  reason: string
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  await supabase
+    .from('conversations')
+    .update({
+      ai_paused: true,
+      auto_pause_reason: reason,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', conversationId);
+
+  console.log(`[Conversation] AI auto-paused for ${conversationId}: ${reason}`);
+}
+
+/**
+ * Reset follow-up stage (e.g., when customer responds)
+ */
+export async function resetFollowupStage(
+  conversationId: string
+): Promise<void> {
+  const supabase = getSupabaseAdmin();
+
+  await supabase
+    .from('conversations')
+    .update({ followup_stage: 0 })
+    .eq('id', conversationId);
 }
 
 /**

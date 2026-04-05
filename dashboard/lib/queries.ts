@@ -90,17 +90,21 @@ export async function getConversationsWithPreview(status?: string): Promise<Conv
   // Fetch recent messages for all conversations (ordered newest first)
   const { data: recentMsgs } = await supabase
     .from('messages')
-    .select('conversation_id, content, role')
+    .select('conversation_id, content, role, sent_by')
     .in('conversation_id', ids)
     .neq('role', 'system')
     .order('timestamp', { ascending: false })
     .limit(500);
 
   // Pick the most recent message per conversation
-  const lastMsgMap = new Map<string, { content: string; role: string }>();
+  const lastMsgMap = new Map<string, { content: string; role: string; sent_by: string | null }>();
   for (const msg of recentMsgs || []) {
     if (!lastMsgMap.has(msg.conversation_id)) {
-      lastMsgMap.set(msg.conversation_id, { content: msg.content, role: msg.role });
+      lastMsgMap.set(msg.conversation_id, {
+        content: msg.content,
+        role: msg.role,
+        sent_by: msg.sent_by || null,
+      });
     }
   }
 
@@ -108,6 +112,7 @@ export async function getConversationsWithPreview(status?: string): Promise<Conv
     ...c,
     last_message: lastMsgMap.get(c.id)?.content || null,
     last_message_role: lastMsgMap.get(c.id)?.role || null,
+    last_message_sent_by: lastMsgMap.get(c.id)?.sent_by || null,
   }));
 }
 
@@ -125,7 +130,7 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
   const supabase = getSupabaseAdmin();
   const { data } = await supabase
     .from('messages')
-    .select('*')
+    .select('id, conversation_id, role, content, timestamp, media_type, media_url, sent_by')
     .eq('conversation_id', conversationId)
     .order('timestamp', { ascending: true });
   return (data || []) as Message[];

@@ -42,7 +42,7 @@ export default async function handler(
 
   try {
     const { parseWebhookPayload, verifyWebhookSignature, sendTextMessage, sendContactCard, markAsRead } = require('../../lib/whatsapp');
-    const { getOrCreateConversation, getConversationHistory, saveMessage, upsertLead, markAsScheduled, getLeadByConversation } = require('../../lib/conversation');
+    const { getOrCreateConversation, getConversationHistory, saveMessage, upsertLead, markAsScheduled, getLeadByConversation, autoPauseAI, resetFollowupStage } = require('../../lib/conversation');
     const { handleAIConversation } = require('../../lib/ai-handler');
 
     const rawBody = await getRawBody(req);
@@ -82,8 +82,10 @@ export default async function handler(
       );
       await supabase
         .from('conversations')
-        .update({ status: 'active', updated_at: new Date().toISOString() })
+        .update({ status: 'active', ai_paused: false, auto_pause_reason: null, updated_at: new Date().toISOString() })
         .eq('id', conversation.id);
+      // Mark as returning lead
+      conversationContext = { status: 'active', isReturningLead: true, daysSinceLastContact: 0 };
       console.log(`[WhatsApp] Reopened closed conversation ${conversation.id}`);
 
     } else if (conversation.status === 'scheduled') {
@@ -97,9 +99,44 @@ export default async function handler(
       console.log(`[WhatsApp] Scheduled conversation ${conversation.id}, datetime: ${lead?.preferred_datetime}`);
     }
 
+    // ── Detect returning lead (customer responds after 1+ days of silence) ──
+    if (!conversationContext && conversation.last_customer_message_at) {
+      const lastContact = new Date(conversation.last_customer_message_at);
+      const hoursSilent = (Date.now() - lastContact.getTime()) / (1000 * 60 * 60);
+      if (hoursSilent >= 24) {
+        const daysSilent = Math.round(hoursSilent / 24);
+        conversationContext = {
+          status: conversation.status,
+          isReturningLead: true,
+          daysSinceLastContact: daysSilent,
+        };
+        console.log(`[WhatsApp] Returning lead detected: ${conversation.id} (${daysSilent} days silent)`);
+
+        // If AI was auto-paused for deferral, unpause it since the customer is back
+        if (conversation.ai_paused && conversation.auto_pause_reason) {
+          const { createClient } = require('@supabase/supabase-js');
+          const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+          );
+          await supabase
+            .from('conversations')
+            .update({ ai_paused: false, auto_pause_reason: null })
+            .eq('id', conversation.id);
+          conversation.ai_paused = false;
+          console.log(`[WhatsApp] Auto-unpaused returning lead: ${conversation.id}`);
+        }
+      }
+    }
+
     // ── Save user message ──
     const textToSave = message.text;
-    await saveMessage(conversation.id, 'user', textToSave);
+    await saveMessage(conversation.id, 'user', textToSave, null);
+
+    // ── Reset follow-up stage when customer responds (they're engaged again) ──
+    if (conversation.followup_stage && conversation.followup_stage > 0) {
+      await resetFollowupStage(conversation.id);
+    }
 
     // ── If AI is paused (manual mode), don't auto-respond ──
     if (conversation.ai_paused) {
@@ -122,6 +159,36 @@ export default async function handler(
 
     // ── Load conversation history ──
     const history = await getConversationHistory(conversation.id, 20);
+
+    // ── Anti-double-message protection ──
+    // If the customer just sent their FIRST message (greeting) and we already have
+    // a recent assistant message (e.g., from a manual send), don't auto-respond
+    // to avoid the double-message pattern seen with Oscar/Alberto.
+    // Exception: if this is a brand new conversation (no prior assistant messages).
+    const recentAssistantMsgs = history.filter((m: any) => m.role === 'assistant');
+    const recentUserMsgs = history.filter((m: any) => m.role === 'user');
+    if (recentAssistantMsgs.length > 0 && recentUserMsgs.length <= 1) {
+      // There's already an assistant message but this is only the customer's 1st or 2nd message.
+      // Check if the last message before this one was from assistant (we already replied).
+      const lastHistoryMsg = history[history.length - 1];
+      if (lastHistoryMsg && lastHistoryMsg.role === 'assistant') {
+        // The customer is responding to our message — this is fine, proceed normally.
+        // But if the customer's message was just saved and the PREVIOUS last was also assistant,
+        // that means we sent 2 assistant messages in a row. Don't add a 3rd.
+        const lastTwoAssistant = history.slice(-2).every((m: any) => m.role === 'assistant');
+        if (lastTwoAssistant) {
+          console.log(`[WhatsApp] Anti-double-message: skipping AI response for ${conversation.id} (2 consecutive assistant messages detected)`);
+          // Still notify the team
+          await pushNewMessage({
+            name: message.name || conversation.lead_name,
+            phone: message.from,
+            preview: message.text,
+            conversationId: conversation.id,
+          }).catch((err: any) => console.error('[Push] pushNewMessage failed:', err));
+          return res.status(200).json({ received: true, skipped: 'anti_double_message' });
+        }
+      }
+    }
 
     // ── Build prompt for media messages ──
     let aiPromptText = message.text;
@@ -151,14 +218,20 @@ export default async function handler(
       console.error('[WhatsApp] AI handler failed:', aiError);
       // Send a graceful fallback so the lead doesn't get ignored
       const fallbackText = '¡Hola! Gracias por escribirnos 😊 En este momento estoy teniendo una dificultad técnica. Un asesor de Bolt se pondrá en contacto contigo a la brevedad.';
-      await saveMessage(conversation.id, 'assistant', fallbackText);
+      await saveMessage(conversation.id, 'assistant', fallbackText, 'ai');
       await sendTextMessage(message.from, fallbackText);
       return res.status(200).json({ received: true, error: 'AI fallback sent' });
     }
 
     // ── Save and send AI response ──
-    await saveMessage(conversation.id, 'assistant', aiResponse.text);
+    await saveMessage(conversation.id, 'assistant', aiResponse.text, 'ai');
     await sendTextMessage(message.from, aiResponse.text);
+
+    // ── Auto-pause AI if triggered ──
+    if (aiResponse.shouldAutoPause) {
+      await autoPauseAI(conversation.id, aiResponse.shouldAutoPause);
+      console.log(`[WhatsApp] AI auto-paused for ${conversation.id}: ${aiResponse.shouldAutoPause}`);
+    }
 
     // ── Notifications (collected and awaited before returning) ──
     const notifications: Promise<any>[] = [];

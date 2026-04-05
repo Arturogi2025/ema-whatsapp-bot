@@ -86,12 +86,13 @@ export async function POST(
     // Build a preview of the message for storage
     const previewBody = body.previewText || `[📋 Plantilla: ${templateName}]`;
 
-    // Save template message to DB as assistant message
+    // Save template message to DB as assistant message (tagged as 'template')
     await supabase.from('messages').insert({
       conversation_id: params.id,
       role: 'assistant',
       content: previewBody,
       timestamp: new Date().toISOString(),
+      sent_by: 'template',
     });
 
     // Update conversation updated_at and reopen if closed

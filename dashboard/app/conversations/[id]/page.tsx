@@ -29,15 +29,32 @@ function MessageBubble({
   role,
   content,
   timestamp,
+  sentBy,
 }: {
   role: string;
   content: string;
   timestamp: string;
+  sentBy?: string | null;
 }) {
   const isUser = role === 'user';
   const isSystem = role === 'system';
+  const isManual = sentBy === 'manual';
+  const isCron = sentBy === 'cron' || sentBy === 'template';
 
   if (isSystem) return null;
+
+  // Manual messages use a blue accent, AI uses yellow, cron uses a subtle gray-blue
+  const assistantBg = isManual ? '#3b82f6' : isCron ? '#6366f1' : '#F5C300';
+  const assistantShadow = isManual
+    ? '0 4px 20px rgba(59, 130, 246, 0.25)'
+    : isCron
+      ? '0 4px 20px rgba(99, 102, 241, 0.25)'
+      : '0 4px 20px rgba(245, 195, 0, 0.25)';
+  const assistantTextColor = '#ffffff';
+  const assistantSubColor = 'rgba(255,255,255,0.6)';
+
+  // Sender label for assistant messages
+  const senderLabel = isManual ? 'Manual' : isCron ? 'Auto' : 'IA';
 
   return (
     <div
@@ -58,14 +75,16 @@ function MessageBubble({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: isUser ? '#181818' : '#F5C300',
+          background: isUser ? '#181818' : assistantBg,
           border: isUser ? '1px solid #262626' : 'none',
         }}
       >
         {isUser ? (
           <User size={13} color="#a3a3a3" />
+        ) : isManual ? (
+          <UserCheck size={13} color={assistantTextColor} />
         ) : (
-          <Bot size={13} color="#0a0a0a" />
+          <Bot size={13} color={isManual || isCron ? assistantTextColor : '#0a0a0a'} />
         )}
       </div>
 
@@ -74,16 +93,31 @@ function MessageBubble({
           maxWidth: '72%',
           padding: '10px 14px',
           borderRadius: isUser ? '16px 16px 16px 4px' : '16px 16px 4px 16px',
-          background: isUser ? 'var(--bg-elevated)' : '#F5C300',
+          background: isUser ? 'var(--bg-elevated)' : assistantBg,
           border: isUser ? '1px solid var(--border)' : 'none',
-          boxShadow: isUser ? 'none' : '0 4px 20px rgba(245, 195, 0, 0.25)',
+          boxShadow: isUser ? 'none' : assistantShadow,
         }}
       >
+        {/* Sender label for assistant messages */}
+        {!isUser && (
+          <div
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.06em',
+              color: isManual || isCron ? 'rgba(255,255,255,0.7)' : '#0a0a0a60',
+              marginBottom: 3,
+            }}
+          >
+            {senderLabel}
+          </div>
+        )}
         <div
           style={{
             fontSize: 14,
             lineHeight: 1.6,
-            color: isUser ? 'var(--text-primary)' : '#0a0a0a',
+            color: isUser ? 'var(--text-primary)' : (isManual || isCron ? assistantTextColor : '#0a0a0a'),
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
           }}
@@ -93,7 +127,7 @@ function MessageBubble({
         <div
           style={{
             fontSize: 11,
-            color: isUser ? 'var(--text-muted)' : '#0a0a0a80',
+            color: isUser ? 'var(--text-muted)' : (isManual || isCron ? assistantSubColor : '#0a0a0a80'),
             marginTop: 4,
             textAlign: isUser ? 'left' : 'right',
           }}
@@ -150,6 +184,9 @@ export default async function ConversationDetailPage({
   // Count manual vs AI messages
   const userMsgCount = messages.filter(m => m.role === 'user').length;
   const assistantMsgCount = messages.filter(m => m.role === 'assistant').length;
+  const aiMsgCount = messages.filter(m => m.role === 'assistant' && (!m.sent_by || m.sent_by === 'ai')).length;
+  const manualMsgCount = messages.filter(m => m.role === 'assistant' && m.sent_by === 'manual').length;
+  const autoMsgCount = messages.filter(m => m.role === 'assistant' && (m.sent_by === 'cron' || m.sent_by === 'template')).length;
   const visibleMsgCount = messages.filter(m => m.role !== 'system').length;
 
   const sidebarContent = (
@@ -254,15 +291,25 @@ export default async function ConversationDetailPage({
         </div>
         {[
           {
-            label: 'Mensajes usuario',
+            label: 'Mensajes cliente',
             value: userMsgCount,
             color: 'var(--text-primary)',
           },
           {
             label: 'Respuestas IA',
-            value: assistantMsgCount,
+            value: aiMsgCount,
             color: '#F5C300',
           },
+          ...(manualMsgCount > 0 ? [{
+            label: 'Mensajes manuales',
+            value: manualMsgCount,
+            color: '#3b82f6',
+          }] : []),
+          ...(autoMsgCount > 0 ? [{
+            label: 'Mensajes automáticos',
+            value: autoMsgCount,
+            color: '#6366f1',
+          }] : []),
         ].map(({ label, value, color }) => (
           <div
             key={label}
@@ -419,6 +466,7 @@ export default async function ConversationDetailPage({
                     role={msg.role}
                     content={msg.content}
                     timestamp={msg.timestamp}
+                    sentBy={msg.sent_by}
                   />
                 ))}
               </div>

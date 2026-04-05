@@ -8,17 +8,125 @@ const BOLT_ADVISOR_PHONE = process.env.BOLT_ADVISOR_PHONE || '';
 const BOLT_PORTFOLIO_URL = 'https://www.boltdevlabs.com/portfolio';
 
 // ============================================================
+// Language detection
+// ============================================================
+
+/** Common English words/patterns that indicate the message is in English */
+const ENGLISH_INDICATORS = [
+  /\b(?:hello|hi|hey|good\s+(?:morning|afternoon|evening))\b/i,
+  /\b(?:i\s+(?:want|need|would|am|have|can)|i'm|i've|i'll)\b/i,
+  /\b(?:how\s+much|can\s+you|do\s+you|are\s+you|what\s+(?:is|are|do))\b/i,
+  /\b(?:website|web\s+page|online\s+store|ecommerce|e-commerce|landing\s+page)\b/i,
+  /\b(?:please|thanks|thank\s+you|interested|information|info|quote|pricing)\b/i,
+  /\b(?:the|and|for|with|this|that|from|have|more|about|your)\b/i,
+  /\b(?:project|business|company|schedule|call|meeting|appointment)\b/i,
+  /\b(?:driving|busy|later|tomorrow|monday|tuesday|wednesday|thursday|friday)\b/i,
+];
+
+/** Common Spanish words that indicate the message is in Spanish */
+const SPANISH_INDICATORS = [
+  /\b(?:hola|buenos?\s*d[ií]as?|buenas?\s*(?:tardes?|noches?))\b/i,
+  /\b(?:necesito|quiero|tengo|puedo|estoy|somos|tiene|puede)\b/i,
+  /\b(?:p[aá]gina|tienda|precio|costo|cu[aá]nto|cotizaci[oó]n)\b/i,
+  /\b(?:por\s+favor|gracias|interesado|informaci[oó]n)\b/i,
+  /\b(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b/i,
+  /\b(?:ma[nñ]ana|manejando|despu[eé]s|luego|ahorita|momento)\b/i,
+];
+
+/**
+ * Detect whether a message is in English or Spanish.
+ * Also considers conversation history — if customer has been writing in English,
+ * continue in English even if current message is ambiguous.
+ */
+export function detectLanguage(
+  text: string,
+  history: Array<{ role: string; content: string }> = []
+): 'en' | 'es' {
+  const englishScore = ENGLISH_INDICATORS.reduce(
+    (score, pattern) => score + (pattern.test(text) ? 1 : 0), 0
+  );
+  const spanishScore = SPANISH_INDICATORS.reduce(
+    (score, pattern) => score + (pattern.test(text) ? 1 : 0), 0
+  );
+
+  // Clear winner from current message
+  if (englishScore > spanishScore && englishScore >= 2) return 'en';
+  if (spanishScore > englishScore && spanishScore >= 2) return 'es';
+
+  // If ambiguous, check recent user messages in history
+  const recentUserMsgs = history
+    .filter(m => m.role === 'user')
+    .slice(-3);
+
+  for (const msg of recentUserMsgs) {
+    const histEn = ENGLISH_INDICATORS.reduce(
+      (s, p) => s + (p.test(msg.content) ? 1 : 0), 0
+    );
+    const histEs = SPANISH_INDICATORS.reduce(
+      (s, p) => s + (p.test(msg.content) ? 1 : 0), 0
+    );
+    if (histEn > histEs && histEn >= 2) return 'en';
+  }
+
+  // Default to Spanish
+  return 'es';
+}
+
+// ============================================================
+// Auto-pause detection — patterns that should trigger AI pause
+// ============================================================
+
+/** Patterns indicating the customer will respond later / is busy */
+const DEFER_PATTERNS_ES = [
+  /\b(?:luego\s+(?:te|le|les)\s+(?:aviso|digo|escribo|contesto|respondo|marco))\b/i,
+  /\b(?:ahorita\s+(?:no\s+puedo|estoy\s+(?:ocupad[oa]|manejando|en\s+(?:junta|reunion|clase|trabajo))))\b/i,
+  /\b(?:estoy\s+(?:manejando|ocupad[oa]|en\s+(?:junta|reunion|clase|trabajo|una\s+llamada)))\b/i,
+  /\b(?:despu[eé]s\s+(?:te|le|les)\s+(?:aviso|digo|escribo|contesto|respondo|marco))\b/i,
+  /\b(?:m[aá]s\s+(?:tarde|al\s+rato)\s+(?:te|le)\s+(?:aviso|escribo|contesto|marco))\b/i,
+  /\b(?:te\s+(?:aviso|escribo|marco|contesto)\s+(?:luego|despu[eé]s|m[aá]s\s+(?:tarde|al\s+rato)))\b/i,
+  /\b(?:no\s+puedo\s+(?:hablar|contestar|responder)\s+(?:ahorita|ahora|en\s+este\s+momento))\b/i,
+  /\b(?:al\s+rato\s+(?:te|le)\s+(?:aviso|escribo|contesto|marco))\b/i,
+];
+
+const DEFER_PATTERNS_EN = [
+  /\b(?:i'll\s+(?:get\s+back|respond|reply|write|call|message)\s+(?:to\s+you\s+)?later)\b/i,
+  /\b(?:(?:i'm|i\s+am)\s+(?:driving|busy|in\s+a\s+meeting|at\s+work|not\s+available))\b/i,
+  /\b(?:can(?:'t|not)\s+(?:talk|chat|respond|reply)\s+(?:right\s+now|now|at\s+the\s+moment))\b/i,
+  /\b(?:(?:let\s+me|i'll)\s+(?:get\s+back\s+to\s+you|respond|reply)\s+(?:later|tomorrow|soon))\b/i,
+  /\b(?:talk\s+(?:to\s+you\s+)?later)\b/i,
+  /\b(?:brb|ttyl)\b/i,
+];
+
+/**
+ * Detect if the customer is deferring / will respond later.
+ * Returns a reason string if detected, null otherwise.
+ */
+export function detectDeferral(text: string, language: 'en' | 'es'): string | null {
+  const patterns = language === 'en' ? DEFER_PATTERNS_EN : DEFER_PATTERNS_ES;
+  for (const pattern of patterns) {
+    if (pattern.test(text)) {
+      return language === 'en'
+        ? 'Customer indicated they will respond later'
+        : 'Cliente indicó que responderá después';
+    }
+  }
+  return null;
+}
+
+// ============================================================
 // Conversation context (passed from webhook for state-aware responses)
 // ============================================================
 export interface ConversationContext {
   status: string;                   // 'active' | 'scheduled' | 'closed'
   scheduledDatetime?: string | null; // The datetime the lead previously scheduled
+  isReturningLead?: boolean;         // True if customer is responding after days of silence
+  daysSinceLastContact?: number;     // How many days since last interaction
 }
 
 // ============================================================
 // System prompt — dynamically includes current date/time + context
 // ============================================================
-function buildSystemPrompt(context?: ConversationContext): string {
+function buildSystemPrompt(context?: ConversationContext, language: 'en' | 'es' = 'es'): string {
   // Current date/time in Mexico City timezone — used for absolute date conversion
   const now = new Date();
   const mexicoTime = now.toLocaleString('es-MX', {
@@ -64,6 +172,62 @@ Tu UNICO rol ahora es:
 =================================`;
   }
 
+  // ── English version of system prompt ──
+  if (language === 'en') {
+    // Advisor handoff for English
+    const advisorHandoffEn = BOLT_ADVISOR_PHONE
+      ? `\n- When confirming a schedule: confirm enthusiastically. Mention the day and time IN ABSOLUTE FORMAT (e.g., "Thursday, April 10th at 3 PM"). NEVER use "tomorrow" or "today" — always use the day name + date + month. Then say: "From now on, your dedicated Bolt advisor will follow up with you via WhatsApp at ${BOLT_ADVISOR_PHONE}. They will reach out to send you the meeting link. Feel free to message them directly with any questions."`
+      : '\n- When confirming a schedule: "Perfect, your meeting is confirmed. We\'ll send you the link shortly."';
+
+    let scheduledContextEn = '';
+    if (context?.status === 'scheduled') {
+      const dt = context.scheduledDatetime || 'a previously agreed time';
+      scheduledContextEn = `
+
+=== MEETING ALREADY SCHEDULED ===
+IMPORTANT: This client ALREADY has a call scheduled for: ${dt}.
+Your ONLY role now is:
+- If they ask about their appointment: confirm it's still on for ${dt} and that their advisor will reach out soon at ${BOLT_ADVISOR_PHONE || 'the number that was shared'}.
+- If they want to reschedule: ask them to contact their advisor directly at ${BOLT_ADVISOR_PHONE || 'the number that was shared'}.
+- If the message is unrelated to the appointment: respond briefly and remind them their advisor will be in touch.
+- Do NOT restart the sales flow. Do NOT propose another call. Do NOT ask discovery questions.
+- Keep it brief (1-2 sentences).
+=================================`;
+    }
+
+    return `You are the virtual assistant for Bolt, a professional web development agency based in Mexico.
+
+CURRENT DATE AND TIME: ${mexicoTime}
+TOMORROW IS: ${tomorrowStr}
+
+CRITICAL DATE RULE: ALWAYS use absolute dates. NEVER respond with "tomorrow", "today", or any relative references. When the user says "tomorrow", YOU must convert it to the actual day. Example: if today is Wednesday April 9th and the user says "tomorrow at 3", your response must say "Thursday, April 10th at 3 PM", NEVER "tomorrow at 3".
+
+Objective:
+1. Respond warmly, professionally, and concisely
+2. Discover what the client needs and their goals
+3. When relevant, share the portfolio: ${BOLT_PORTFOLIO_URL}
+4. Schedule a 20-minute call/video call/in-person meeting
+
+Rules:
+- RESPOND IN ENGLISH (the customer is writing in English)
+- Friendly and professional tone
+- Short messages (2-3 sentences max, 4 for the scheduling confirmation + handoff message)
+- 1-2 emojis per message max
+- NEVER give exact prices. If they insist, explain each project is unique and a quick 20-min call would let you give them an accurate, no-commitment quote.
+- NEVER ask about their budget
+- NEVER send to Calendly or any external scheduling tool
+- If they ask if you're a bot: "I'm Bolt's virtual assistant. If you'd prefer to speak with someone from our team directly, I'd be happy to connect you"
+- Maximum 3 discovery exchanges before proposing a call
+- To share portfolio, include the link ${BOLT_PORTFOLIO_URL} naturally in your response${advisorHandoffEn}
+- If the client does NOT want a call but is still interested: don't push the call. Instead, say something like "No problem at all! I'll pass your details to a Bolt advisor and they'll reach out to you right here on WhatsApp with more info and a personalized quote. Sound good?"
+- After confirming and making the advisor handoff (whether by call or WhatsApp), the flow ENDS. If the client writes after that, kindly respond that their advisor will be in touch soon at ${BOLT_ADVISOR_PHONE || 'the number that was shared'} and they can message them directly.
+
+Services: Websites, Online stores, Landing pages, Redesigns, Custom systems
+
+Differentiators: Premium design (no templates), Fast delivery, SEO included, Spanish & English support, WhatsApp integrated${scheduledContextEn}`;
+  }
+
+  // ── Spanish version (default) ──
   return `Eres el asistente virtual de Bolt, una agencia de desarrollo web profesional con sede en Mexico.
 
 FECHA Y HORA ACTUAL: ${mexicoTime}
@@ -78,14 +242,14 @@ Objetivo:
 4. Agendar una llamada/videollamada/reunion presencial de 20 minutos
 
 Reglas:
-- Espanol siempre (a menos que escriban en ingles)
+- Espanol siempre
 - Tono amigable y profesional, SIEMPRE habla de USTED al cliente (nunca tutear). Usa "le", "su", "usted" en lugar de "te", "tu", "tú". Ejemplo: "¿En qué le podemos ayudar?" en vez de "¿En qué te podemos ayudar?"
 - Mensajes cortos (2-3 oraciones maximo, 4 si es el mensaje de confirmacion de cita con handoff)
 - 1-2 emojis por mensaje maximo
 - NUNCA des precios exactos. Si insisten mucho, di que cada proyecto es unico y por eso vale la pena una llamada corta de 20 min para darles una cotizacion precisa y sin compromiso.
 - NUNCA preguntes por presupuesto
 - NUNCA mandes a Calendly ni ninguna herramienta externa
-- Si preguntan si eres bot: "Soy el asistente virtual de Bolt. Si prefiere hablar con alguien del equipo directamente, con gusto lo conecto 😊"
+- Si preguntan si eres bot: "Soy el asistente virtual de Bolt. Si prefiere hablar con alguien del equipo directamente, con gusto lo conecto"
 - Maximo 3 intercambios de descubrimiento antes de proponer llamada
 - Para compartir portafolio, incluye el link ${BOLT_PORTFOLIO_URL} de forma natural en tu respuesta${advisorHandoff}
 - Si el cliente NO quiere llamada pero sigue interesado: no insistas con la llamada. En su lugar, di algo como "Sin problema, entiendo perfectamente. Le paso sus datos a un asesor de Bolt y el lo contactara por aqui mismo con mas informacion y una cotizacion personalizada. Te parece bien?" Esto hace el handoff al asesor sin forzar la llamada.
@@ -113,6 +277,10 @@ export interface AIResponse {
   shouldSendPortfolio: boolean;
   detectedProjectType: string | null;
   detectedDatetime: string | null;
+  /** Detected language of the conversation */
+  language: 'en' | 'es';
+  /** If set, AI should be auto-paused after this response with this reason */
+  shouldAutoPause: string | null;
 }
 
 interface ConversationMessage {
@@ -128,10 +296,14 @@ const GREETING_PATTERNS =
   /^(hola|hi|hello|hey|buenos?\s*d[ií]as?|buenas?\s*(tardes?|noches?)|que\s*tal|saludos|buen\s*d[ií]a)/i;
 
 const PROJECT_KEYWORDS = [
+  // Spanish
   'pagina web', 'página web', 'sitio web', 'tienda en linea', 'tienda en línea',
   'tienda online', 'landing', 'landing page', 'ecommerce', 'e-commerce',
   'rediseño', 'rediseno', 'sistema', 'aplicación', 'aplicacion', 'app',
   'tienda', 'web',
+  // English
+  'website', 'web page', 'web site', 'online store', 'web app', 'web application',
+  'redesign', 'custom system', 'store', 'shop',
 ];
 
 // Price / budget inquiry keywords
@@ -155,13 +327,18 @@ const PRICE_PATTERNS =
 const SCHEDULE_PATTERNS =
   /\b(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b|\b(?:ma[nñ]ana|hoy|pasado\s+ma[nñ]ana)\b|(?:a\s+las?\s+)\d{1,2}(?::\d{2})?(?:\s*(?:am|pm|hrs?|de\s+la\s+(?:ma[nñ]ana|tarde|noche)))?|\b\d{1,2}:\d{2}\b(?:\s*(?:am|pm|hrs?))?|\b\d{1,2}\s*(?:am|pm)\b|\b\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/i;
 
+// English schedule patterns
+const SCHEDULE_PATTERNS_EN =
+  /\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b|\b(?:tomorrow|today)\b|(?:at\s+)\d{1,2}(?::\d{2})?\s*(?:am|pm)?|\b\d{1,2}:\d{2}\s*(?:am|pm)?\b|\b\d{1,2}\s*(?:am|pm)\b|\b(?:january|february|march|april|may|june|july|august|september|october|november|december)\s+\d{1,2}\b/i;
+
 // ============================================================
 // Intent detection logic
 // ============================================================
 function detectIntent(
   text: string,
   messageCount: number,
-  conversationStatus?: string
+  conversationStatus?: string,
+  language: 'en' | 'es' = 'es'
 ): { intent: AIResponse['intent']; shouldSendPortfolio: boolean } {
   const lower = text.toLowerCase();
 
@@ -176,17 +353,20 @@ function detectIntent(
   }
 
   // ── Price inquiry (detect before schedule to avoid false positives) ──
-  if (PRICE_PATTERNS.test(lower)) {
+  const PRICE_PATTERNS_EN = /(?:how\s+much|price|cost|pricing|quote|estimate|budget|rates?|investment)\b/i;
+  if (PRICE_PATTERNS.test(lower) || (language === 'en' && PRICE_PATTERNS_EN.test(lower))) {
     return { intent: 'price_inquiry', shouldSendPortfolio: false };
   }
 
   // ── Schedule confirmation ──
   // Only detect scheduling after at least 2 message exchanges to avoid
   // false positives on early messages (e.g., "tengo 12 empleados").
-  // messageCount uses the value BEFORE saving the current user message,
-  // so messageCount >= 2 means this is at least the user's 2nd message.
-  if (messageCount >= 2 && SCHEDULE_PATTERNS.test(lower)) {
-    return { intent: 'confirm_schedule', shouldSendPortfolio: false };
+  if (messageCount >= 2) {
+    const scheduleMatch = SCHEDULE_PATTERNS.test(lower) ||
+      (language === 'en' && SCHEDULE_PATTERNS_EN.test(lower));
+    if (scheduleMatch) {
+      return { intent: 'confirm_schedule', shouldSendPortfolio: false };
+    }
   }
 
   // ── Project mentioned ──
@@ -272,14 +452,25 @@ export async function handleAIConversation(
 
   const client = new Anthropic({ apiKey });
 
+  // ── Detect language ──
+  const language = detectLanguage(userMessage, history);
+
   // ── Detect intent ──
   const { intent, shouldSendPortfolio } = detectIntent(
     userMessage,
     conversationMessageCount,
-    conversationContext?.status
+    conversationContext?.status,
+    language
   );
   const detectedProjectType = extractProjectType(userMessage);
   const detectedDatetime = extractDatetime(userMessage);
+
+  // ── Check for auto-pause triggers ──
+  const deferralReason = detectDeferral(userMessage, language);
+  // Auto-pause on: schedule confirmed OR customer defers
+  const shouldAutoPause = intent === 'confirm_schedule'
+    ? (language === 'en' ? 'Call scheduled - AI auto-paused' : 'Llamada agendada - IA pausada automáticamente')
+    : deferralReason;
 
   // ── Build portfolio context (internal, for AI personalization) ──
   let portfolioContext = '';
@@ -287,33 +478,64 @@ export async function handleAIConversation(
     const examples = await getRelevantExamples(detectedProjectType, 3);
     if (examples.length > 0) {
       const formatted = formatPortfolioText(examples);
-      portfolioContext = `\n\n[CONTEXTO INTERNO — NO mostrar esto textualmente al cliente]\nPortafolio relevante:\n${formatted}\n\nMenciona de forma natural que tienes ejemplos de proyectos similares y comparte el link ${BOLT_PORTFOLIO_URL} para que los vea. No listes cada proyecto individualmente, solo menciona que pueden ver ejemplos reales en el portafolio.`;
+      portfolioContext = language === 'en'
+        ? `\n\n[INTERNAL CONTEXT — Do NOT show this verbatim to the client]\nRelevant portfolio:\n${formatted}\n\nNaturally mention that you have examples of similar projects and share the link ${BOLT_PORTFOLIO_URL} for them to see. Don't list each project individually, just mention they can see real examples in the portfolio.`
+        : `\n\n[CONTEXTO INTERNO — NO mostrar esto textualmente al cliente]\nPortafolio relevante:\n${formatted}\n\nMenciona de forma natural que tienes ejemplos de proyectos similares y comparte el link ${BOLT_PORTFOLIO_URL} para que los vea. No listes cada proyecto individualmente, solo menciona que pueden ver ejemplos reales en el portafolio.`;
     }
   }
 
   // ── Internal nudges based on intent ──
   let intentNudge = '';
 
-  switch (intent) {
-    case 'propose_call':
-      intentNudge =
-        '\n\n[CONTEXTO INTERNO] Ya llevas varios intercambios con este lead. Es momento de proponer una llamada/videollamada de 20 min de forma natural y amigable. Pregunta que dia y hora le funciona.';
-      break;
+  if (language === 'en') {
+    switch (intent) {
+      case 'propose_call':
+        intentNudge = '\n\n[INTERNAL CONTEXT] You have had several exchanges with this lead. It is time to naturally and friendly propose a 20-min call/video call. Ask what day and time works for them.';
+        break;
+      case 'confirm_schedule':
+        intentNudge = '\n\n[INTERNAL CONTEXT] The client seems to be confirming a day and time for the call. Confirm enthusiastically using FULL ABSOLUTE DATE (day of week + number + month + time). Do the advisor handoff per the rules and close the flow.';
+        break;
+      case 'followup_scheduled':
+        intentNudge = '\n\n[INTERNAL CONTEXT] This client ALREADY has a scheduled appointment. Respond briefly confirming their appointment is still on and their advisor will be in touch soon. Do NOT restart the sales flow. Do NOT ask discovery questions.';
+        break;
+      case 'price_inquiry':
+        intentNudge = '\n\n[INTERNAL CONTEXT] The client is asking about prices. NEVER give a number. Kindly explain each project is unique and a quick 20-min call would let you give them an accurate, no-commitment quote. If you already know their project type, mention you have done similar projects and share the portfolio.';
+        break;
+    }
+  } else {
+    switch (intent) {
+      case 'propose_call':
+        intentNudge =
+          '\n\n[CONTEXTO INTERNO] Ya llevas varios intercambios con este lead. Es momento de proponer una llamada/videollamada de 20 min de forma natural y amigable. Pregunta que dia y hora le funciona.';
+        break;
+      case 'confirm_schedule':
+        intentNudge =
+          '\n\n[CONTEXTO INTERNO] El cliente parece estar confirmando un dia y hora para la llamada. Confirma con entusiasmo usando FECHA ABSOLUTA completa (dia de la semana + numero + mes + hora). Haz el handoff al asesor segun las reglas y cierra el flujo.';
+        break;
+      case 'followup_scheduled':
+        intentNudge =
+          '\n\n[CONTEXTO INTERNO] Este cliente YA tiene cita agendada. Responde brevemente confirmando que su cita sigue en pie y que su asesor se comunicara pronto. NO reinicies el flujo de ventas. NO hagas preguntas de descubrimiento.';
+        break;
+      case 'price_inquiry':
+        intentNudge =
+          '\n\n[CONTEXTO INTERNO] El cliente esta preguntando por precios. NUNCA des un numero. Explica amablemente que cada proyecto es unico y que en una llamada corta de 20 min puedes darle una cotizacion precisa sin compromiso. Si ya sabes su tipo de proyecto, menciona que has hecho proyectos similares y comparte el portafolio.';
+        break;
+    }
+  }
 
-    case 'confirm_schedule':
-      intentNudge =
-        '\n\n[CONTEXTO INTERNO] El cliente parece estar confirmando un dia y hora para la llamada. Confirma con entusiasmo usando FECHA ABSOLUTA completa (dia de la semana + numero + mes + hora). Haz el handoff al asesor segun las reglas y cierra el flujo.';
-      break;
+  // ── Deferral nudge: if customer says they'll respond later, be gracious ──
+  if (deferralReason) {
+    intentNudge += language === 'en'
+      ? '\n\n[INTERNAL CONTEXT] The customer indicated they are busy or will respond later. Respond VERY briefly (1 sentence), acknowledge their situation graciously, and let them know you are available whenever they are ready. Do NOT ask questions. Do NOT push for scheduling. Do NOT continue selling.'
+      : '\n\n[CONTEXTO INTERNO] El cliente indico que esta ocupado o que respondera despues. Responde MUY brevemente (1 oracion), reconoce su situacion con amabilidad y hazle saber que estamos disponibles cuando guste. NO hagas preguntas. NO insistas con agendar. NO continues vendiendo.';
+  }
 
-    case 'followup_scheduled':
-      intentNudge =
-        '\n\n[CONTEXTO INTERNO] Este cliente YA tiene cita agendada. Responde brevemente confirmando que su cita sigue en pie y que su asesor se comunicara pronto. NO reinicies el flujo de ventas. NO hagas preguntas de descubrimiento.';
-      break;
-
-    case 'price_inquiry':
-      intentNudge =
-        '\n\n[CONTEXTO INTERNO] El cliente esta preguntando por precios. NUNCA des un numero. Explica amablemente que cada proyecto es unico y que en una llamada corta de 20 min puedes darle una cotizacion precisa sin compromiso. Si ya sabes su tipo de proyecto, menciona que has hecho proyectos similares y comparte el portafolio.';
-      break;
+  // ── Returning lead nudge — extra context when a customer comes back after days ──
+  if (conversationContext?.isReturningLead && conversationContext.daysSinceLastContact) {
+    const days = conversationContext.daysSinceLastContact;
+    intentNudge += language === 'en'
+      ? `\n\n[INTERNAL CONTEXT] This is a RETURNING LEAD. The customer has not responded for approximately ${days} day(s) and is now coming back. Be extra warm and welcoming. Do NOT repeat previous questions or information they already gave. Acknowledge that it has been a while in a natural way (e.g., "Great to hear from you again!"). Pick up where the conversation left off. If their project type was already discussed, skip discovery and move toward scheduling.`
+      : `\n\n[CONTEXTO INTERNO] Este es un LEAD QUE REGRESA. El cliente no habia respondido en aproximadamente ${days} dia(s) y ahora vuelve a escribir. Se extra calido y acogedor. NO repitas preguntas ni informacion que ya te dieron. Reconoce de forma natural que ha pasado un tiempo (ej: "¡Que gusto saber de usted de nuevo!"). Retoma la conversacion donde se quedo. Si su tipo de proyecto ya se discutio, salta el descubrimiento y avanza hacia agendar.`;
   }
 
   // ── Dynamic max_tokens based on intent ──
@@ -348,7 +570,7 @@ export async function handleAIConversation(
     model: 'claude-haiku-4-5-20251001',
     max_tokens: maxTokens,
     temperature: 0.6,
-    system: buildSystemPrompt(conversationContext) + portfolioContext + intentNudge,
+    system: buildSystemPrompt(conversationContext, language) + portfolioContext + intentNudge,
     messages,
   });
 
@@ -364,5 +586,7 @@ export async function handleAIConversation(
     shouldSendPortfolio,
     detectedProjectType,
     detectedDatetime,
+    language,
+    shouldAutoPause,
   };
 }

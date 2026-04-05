@@ -115,6 +115,19 @@ export async function pushNewLead(params: {
 }
 
 /**
+ * Notify: follow-up failures
+ */
+export async function pushFollowupFailure(params: {
+  count: number;
+}): Promise<void> {
+  await sendPushToAll({
+    title: `⚠️ ${params.count} follow-up(s) fallidos`,
+    body: 'Templates no enviados. Revisa el dashboard para dar seguimiento manual.',
+    url: '/conversations',
+  });
+}
+
+/**
  * Notify: call scheduled
  */
 export async function pushCallScheduled(params: {
