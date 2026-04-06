@@ -14,13 +14,14 @@ const BOLT_PORTFOLIO_URL = 'https://www.boltdevlabs.com/portfolio';
 /** Common English words/patterns that indicate the message is in English */
 const ENGLISH_INDICATORS = [
   /\b(?:hello|hi|hey|good\s+(?:morning|afternoon|evening))\b/i,
-  /\b(?:i\s+(?:want|need|would|am|have|can)|i'm|i've|i'll)\b/i,
-  /\b(?:how\s+much|can\s+you|do\s+you|are\s+you|what\s+(?:is|are|do))\b/i,
+  /\b(?:i\s+(?:want|need|would|am|have|can)|i'm|i've|i'll|i'd)\b/i,
+  /\b(?:how\s+much|can\s+you|do\s+you|are\s+you|what\s+(?:is|are|do|services?))\b/i,
   /\b(?:website|web\s+page|online\s+store|ecommerce|e-commerce|landing\s+page)\b/i,
   /\b(?:please|thanks|thank\s+you|interested|information|info|quote|pricing)\b/i,
-  /\b(?:the|and|for|with|this|that|from|have|more|about|your)\b/i,
-  /\b(?:project|business|company|schedule|call|meeting|appointment)\b/i,
+  /\b(?:the|and|for|with|this|that|from|have|more|about|your|you)\b/i,
+  /\b(?:project|business|company|schedule|call|meeting|appointment|services?|offer)\b/i,
   /\b(?:driving|busy|later|tomorrow|monday|tuesday|wednesday|thursday|friday)\b/i,
+  /\b(?:sounds?\s+good|great|awesome|perfect|sure|okay|ok|yes\s+please|no\s+problem|let\s+me\s+know|got\s+it|nice|cool)\b/i,
 ];
 
 /** Common Spanish words that indicate the message is in Spanish */
@@ -195,7 +196,9 @@ Your ONLY role now is:
 =================================`;
     }
 
-    return `You are the virtual assistant for Bolt, a professional web development agency based in Mexico.
+    return `⚠️ MANDATORY LANGUAGE: ALL your responses MUST be in ENGLISH. The customer is writing in English. NEVER respond in Spanish.
+
+You are the virtual assistant for Bolt, a professional web development agency based in Mexico.
 
 CURRENT DATE AND TIME: ${mexicoTime}
 TOMORROW IS: ${tomorrowStr}
@@ -209,7 +212,7 @@ Objective:
 4. Schedule a 20-minute call/video call/in-person meeting
 
 Rules:
-- RESPOND IN ENGLISH (the customer is writing in English)
+- ⚠️ RESPOND IN ENGLISH ONLY — the customer is writing in English
 - Friendly and professional tone
 - Short messages (2-3 sentences max, 4 for the scheduling confirmation + handoff message)
 - 1-2 emojis per message max
@@ -224,7 +227,9 @@ Rules:
 
 Services: Websites, Online stores, Landing pages, Redesigns, Custom systems
 
-Differentiators: Premium design (no templates), Fast delivery, SEO included, Spanish & English support, WhatsApp integrated${scheduledContextEn}`;
+Differentiators: Premium design (no templates), Fast delivery, SEO included, Spanish & English support, WhatsApp integrated
+
+REMINDER: You MUST respond in ENGLISH. Do NOT use Spanish.${scheduledContextEn}`;
   }
 
   // ── Spanish version (default) ──
@@ -554,8 +559,19 @@ export async function handleAIConversation(
   }
 
   // ── Build messages array for Claude ──
+  // Note: The current user message may already be in history (saved before history fetch).
+  // We deduplicate by removing the last entry if it matches the current message.
+  const dedupedHistory = [...history];
+  if (
+    dedupedHistory.length > 0 &&
+    dedupedHistory[dedupedHistory.length - 1].role === 'user' &&
+    dedupedHistory[dedupedHistory.length - 1].content === userMessage
+  ) {
+    dedupedHistory.pop();
+  }
+
   const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [
-    ...history.map(msg => ({
+    ...dedupedHistory.map(msg => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
     })),
@@ -576,9 +592,10 @@ export async function handleAIConversation(
 
   // ── Extract text ──
   const textBlock = response.content.find(block => block.type === 'text');
-  const text = textBlock
-    ? textBlock.text
+  const fallbackText = language === 'en'
+    ? 'Hi! Thanks for reaching out to Bolt. How can we help you? 😊'
     : 'Hola, gracias por escribirnos. ¿En qué le podemos ayudar? 😊';
+  const text = textBlock ? textBlock.text : fallbackText;
 
   return {
     text,

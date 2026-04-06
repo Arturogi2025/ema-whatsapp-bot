@@ -217,7 +217,7 @@ export default async function handler(
     } catch (aiError) {
       console.error('[WhatsApp] AI handler failed:', aiError);
       // Send a graceful fallback so the lead doesn't get ignored
-      const fallbackText = '¡Hola! Gracias por escribirnos 😊 En este momento estoy teniendo una dificultad técnica. Un asesor de Bolt se pondrá en contacto contigo a la brevedad.';
+      const fallbackText = '¡Hola! Gracias por escribirnos 😊 En este momento estoy teniendo una dificultad técnica. Un asesor de Bolt se pondrá en contacto con usted a la brevedad.\n\nHi! Thanks for reaching out 😊 We\'re experiencing a brief technical issue. A Bolt advisor will contact you shortly.';
       await saveMessage(conversation.id, 'assistant', fallbackText, 'ai');
       await sendTextMessage(message.from, fallbackText);
       return res.status(200).json({ received: true, error: 'AI fallback sent' });
