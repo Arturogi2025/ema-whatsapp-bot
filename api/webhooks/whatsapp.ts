@@ -71,7 +71,7 @@ export default async function handler(
 
     // ── Handle conversation status ──
     // Build context object for the AI based on current status.
-    let conversationContext: { status: string; scheduledDatetime?: string | null } | undefined;
+    let conversationContext: { status: string; scheduledDatetime?: string | null; isReturningLead?: boolean; daysSinceLastContact?: number } | undefined;
 
     if (conversation.status === 'closed') {
       // Reopen closed conversations — client wants to talk again
