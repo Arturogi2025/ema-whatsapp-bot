@@ -128,11 +128,15 @@ export async function getConversation(id: string): Promise<Conversation | null> 
 
 export async function getMessages(conversationId: string): Promise<Message[]> {
   const supabase = getSupabaseAdmin();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('messages')
-    .select('id, conversation_id, role, content, timestamp, media_type, media_url, sent_by')
+    .select('id, conversation_id, role, content, timestamp, sent_by')
     .eq('conversation_id', conversationId)
     .order('timestamp', { ascending: true });
+  if (error) {
+    console.error('[getMessages] Supabase error:', error.message);
+    return [];
+  }
   return (data || []) as Message[];
 }
 

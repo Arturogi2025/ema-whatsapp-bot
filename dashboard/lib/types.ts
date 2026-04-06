@@ -28,8 +28,6 @@ export interface Message {
   role: MessageRole;
   content: string;
   timestamp: string;
-  media_type?: string | null;
-  media_url?: string | null;
   /** For assistant messages: 'ai' | 'manual' | 'cron' | 'template' */
   sent_by?: string | null;
 }
