@@ -529,11 +529,12 @@ function parseMeetingTime(datetimeStr: string): Date | null {
 
   const dateMatch = datetimeStr.match(/(\d{1,2})\s+de\s+(\w+)/i);
   if (dateMatch) {
-    day = parseInt(dateMatch[1]);
     const monthName = dateMatch[2].toLowerCase();
     if (months[monthName] !== undefined) {
+      day = parseInt(dateMatch[1]);
       month = months[monthName];
     }
+    // If monthName is not a valid month (e.g., "de la tarde"), don't set day
   }
 
   let hours: number | null = null;
