@@ -12,5 +12,6 @@
       "path": "/api/cron/send-reminders",
       "schedule": "*/30 * * * *"
     }
-  ]
+  ],
+  "buildCommand": "echo 'Build OK'"
 }
