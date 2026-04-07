@@ -347,23 +347,23 @@ const PRICE_PATTERNS =
  *   - Full date: "15 de abril"
  *   - "al medio día" / "mediodía"
  */
-const SCHEDULE_PATTERNS =
+export const SCHEDULE_PATTERNS =
   /\b(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b|\b(?:ma[nñ]ana|hoy|pasado\s+ma[nñ]ana)\b|(?:a\s+las?\s+)\d{1,2}(?::\d{2})?(?:\s*(?:am|pm|hrs?|de\s+la\s+(?:ma[nñ]ana|tarde|noche)))?|\b\d{1,2}:\d{2}\b(?:\s*(?:am|pm|hrs?))?|\b\d{1,2}\s*(?:am|pm)\b|\b\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b|(?:al\s+)?medio\s*d[ií]a|mediodia/i;
 
 /**
  * Informal scheduling / immediate call request patterns.
  * Matches: "márcame", "llámame", "en 20 minutos", "puede marcar", "si gusta marcar"
  */
-const IMMEDIATE_CALL_PATTERNS_ES =
+export const IMMEDIATE_CALL_PATTERNS_ES =
   /\b(?:m[aá]rc(?:ame|ame|ale|eme|enos|ar)|ll[aá]m(?:ame|ame|ale|eme|enos|ar))\b|\b(?:si\s+(?:gusta|quiere|puede)\s+(?:marcar|llamar))\b|\b(?:en\s+\d{1,3}\s+minutos?\s+(?:si\s+)?(?:gusta|puede|quiere)?\s*(?:marcar|llamar)?)\b|\b(?:puede\s+(?:marcar|llamar)(?:me)?)\b|\b(?:(?:le|les?)\s+(?:marco|llamo|marquemos|llamamos))\b/i;
 
-const IMMEDIATE_CALL_PATTERNS_EN =
+export const IMMEDIATE_CALL_PATTERNS_EN =
   /\b(?:call\s+me|give\s+me\s+a\s+call|can\s+you\s+call|in\s+\d{1,3}\s+minutes?)\b/i;
 
 /**
  * Spam/vendor detection — matches messages that OFFER services instead of requesting them.
  */
-const SPAM_PATTERNS =
+export const SPAM_PATTERNS =
   /\b(?:seguidores|likes|compartidas|referencias\s+a\s+tu\s+p[aá]gina|crecer\s+(?:tus?|sus?)\s+redes|posicion(?:ar|amiento)|primeros?\s+lugares?\s+de\s+(?:las?\s+)?b[uú]squedas?|se\s+realiza\s+primero\s+el\s+trabajo|manejo\s+de\s+redes|community\s+manager|dise[nñ]o\s+gr[aá]fico|social\s+media\s+(?:management|marketing)|boost\s+your\s+(?:followers|likes|engagement)|grow\s+your\s+(?:social|business|brand))\b/i;
 
 // English schedule patterns
@@ -373,7 +373,7 @@ const SCHEDULE_PATTERNS_EN =
 // ============================================================
 // Intent detection logic
 // ============================================================
-function detectIntent(
+export function detectIntent(
   text: string,
   messageCount: number,
   conversationStatus?: string,
@@ -440,7 +440,7 @@ function detectIntent(
 // ============================================================
 // Project type extraction
 // ============================================================
-function extractProjectType(text: string): string | null {
+export function extractProjectType(text: string): string | null {
   for (const kw of PROJECT_KEYWORDS) {
     if (text.toLowerCase().includes(kw)) {
       return detectCategory(text);
@@ -457,7 +457,7 @@ function extractProjectType(text: string): string | null {
  * Convert a relative datetime text like "mañana a las 11am" to an ISO 8601 string.
  * Uses Mexico City timezone as the reference.
  */
-function resolveToAbsoluteDate(rawDatetime: string): string {
+export function resolveToAbsoluteDate(rawDatetime: string): string {
   const lower = rawDatetime.toLowerCase().trim();
 
   // Get current time in Mexico City
@@ -603,7 +603,7 @@ function resolveToAbsoluteDate(rawDatetime: string): string {
  * Get the offset from UTC for Mexico City at a given date (handles DST).
  * Returns offset in milliseconds to ADD to UTC to get Mexico City time.
  */
-function getMexicoCityOffset(date: Date): number {
+export function getMexicoCityOffset(date: Date): number {
   // Use Intl to get the actual offset
   const utcStr = date.toLocaleString('en-US', { timeZone: 'UTC' });
   const mxStr = date.toLocaleString('en-US', { timeZone: 'America/Mexico_City' });
@@ -612,7 +612,7 @@ function getMexicoCityOffset(date: Date): number {
   return mxDate.getTime() - utcDate.getTime();
 }
 
-function extractDatetime(text: string): string | null {
+export function extractDatetime(text: string): string | null {
   const lower = text.toLowerCase();
 
   const patterns: RegExp[] = [

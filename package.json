@@ -4,7 +4,9 @@
   "private": true,
   "description": "WhatsApp AI assistant for Bolt web development agency",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -16,6 +18,7 @@
     "@vercel/node": "^5.6.18",
     "tsx": "^4.21.0",
     "typescript": "^5.8.3",
-    "vercel": "^50.39.0"
+    "vercel": "^50.39.0",
+    "vitest": "^4.1.3"
   }
 }
