@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import StatusBadge from './StatusBadge';
 import { Phone, Briefcase, Calendar, Target, Pencil, Check, X, Loader2 } from 'lucide-react';
-import { fmtMX } from '@/lib/tz';
+import { fmtRelativeMX } from '@/lib/tz';
 import type { Lead } from '@/lib/types';
 
 const PROJECT_TYPE_LABELS: Record<string, string> = {
@@ -149,7 +149,7 @@ export default function LeadsTable({ leads, emptyMessage }: { leads: Lead[]; emp
               ) : lead.preferred_datetime ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Calendar size={12} color="#22c55e" />
-                  <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{fmtMX(lead.preferred_datetime, 'd MMM HH:mm')}</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{fmtRelativeMX(lead.preferred_datetime)}</span>
                   {lead.status === 'scheduled' && (
                     <button
                       onClick={(e) => startEdit(e, lead)}

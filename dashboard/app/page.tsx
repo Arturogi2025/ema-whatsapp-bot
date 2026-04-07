@@ -7,7 +7,7 @@ import PeriodFilter from '@/components/PeriodFilter';
 import AutoRefresh from '@/components/AutoRefresh';
 import PushNotificationToggle from '@/components/PushNotificationToggle';
 import { MessageSquare, Users, CalendarCheck, Zap, MapPin, Clock, TrendingUp, Bell, UserPlus, PhoneCall, Activity, Phone, Briefcase } from 'lucide-react';
-import { fmtMX, parseMXDatetime } from '@/lib/tz';
+import { fmtMX, parseMXDatetime, fmtRelativeMX } from '@/lib/tz';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -235,7 +235,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
                       }}
                     >
                       <CalendarCheck size={13} color="var(--text-muted)" />
-                      {fmtMX(parseMXDatetime(call.preferred_datetime!), "EEEE d 'de' MMMM · HH:mm'h'")}
+                      {fmtRelativeMX(call.preferred_datetime)}
                     </div>
 
                     {/* Objective or notes */}
@@ -321,7 +321,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
                       {/* Date */}
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
                         <CalendarCheck size={12} />
-                        {fmtMX(parseMXDatetime(call.preferred_datetime!), "d MMM · HH:mm'h'")}
+                        {fmtRelativeMX(call.preferred_datetime)}
                       </div>
                       {/* Project badge */}
                       {projectLabel && (
