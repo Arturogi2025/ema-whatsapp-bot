@@ -7,7 +7,7 @@ import PeriodFilter from '@/components/PeriodFilter';
 import AutoRefresh from '@/components/AutoRefresh';
 import PushNotificationToggle from '@/components/PushNotificationToggle';
 import { MessageSquare, Users, CalendarCheck, Zap, MapPin, Clock, TrendingUp, Bell, UserPlus, PhoneCall, Activity, Phone, Briefcase } from 'lucide-react';
-import { fmtMX } from '@/lib/tz';
+import { fmtMX, parseMXDatetime } from '@/lib/tz';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -69,6 +69,15 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
 
   const recent = conversations.slice(0, 8);
 
+  // Split calls into upcoming (future) and past
+  const now = new Date();
+  const upcomingCallsFiltered = upcomingCalls.filter(c =>
+    c.preferred_datetime ? parseMXDatetime(c.preferred_datetime) >= now : false
+  );
+  const pastCalls = upcomingCalls.filter(c =>
+    c.preferred_datetime ? parseMXDatetime(c.preferred_datetime) < now : false
+  ).reverse(); // most recent past call first
+
   const statusData = [
     { name: 'Activos', value: stats.activeConversations, color: '#22c55e' },
     { name: 'Agendados', value: stats.scheduledCalls, color: '#F5C300' },
@@ -118,9 +127,9 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
 
       {/* ═══ AGENDA — Upcoming Calls ═══ */}
       <div style={{ marginBottom: 28 }}>
-        <AgendaHeader count={upcomingCalls.length} />
+        <AgendaHeader count={upcomingCallsFiltered.length} />
 
-        {upcomingCalls.length === 0 ? (
+        {upcomingCallsFiltered.length === 0 ? (
           <Card style={{ padding: '40px 24px', textAlign: 'center' as const }}>
             <CalendarCheck size={36} color="var(--text-muted)" strokeWidth={1.5} style={{ marginBottom: 10, opacity: 0.4 }} />
             <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>No tienes llamadas agendadas</div>
@@ -138,7 +147,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
               gap: 12,
             }}
           >
-            {upcomingCalls.map((call) => {
+            {upcomingCallsFiltered.map((call) => {
               const projectLabels: Record<string, string> = {
                 web: 'Página web',
                 ecommerce: 'Tienda online',
@@ -226,7 +235,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
                       }}
                     >
                       <CalendarCheck size={13} color="var(--text-muted)" />
-                      {call.preferred_datetime}
+                      {fmtMX(parseMXDatetime(call.preferred_datetime!), "EEEE d 'de' MMMM · HH:mm'h'")}
                     </div>
 
                     {/* Objective or notes */}
@@ -254,6 +263,80 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
           </div>
         )}
       </div>
+
+      {/* ═══ HISTORIAL DE LLAMADAS ═══ */}
+      {pastCalls.length > 0 && (
+        <div style={{ marginBottom: 28 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <Clock size={15} color="var(--text-muted)" />
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Historial de llamadas
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-muted)', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 20, padding: '1px 8px' }}>
+              {pastCalls.length}
+            </span>
+          </div>
+          <Card>
+            <div style={{ padding: '0' }}>
+              {pastCalls.map((call, idx) => {
+                const projectLabels: Record<string, string> = {
+                  web: 'Página web', ecommerce: 'Tienda online',
+                  landing: 'Landing page', redesign: 'Rediseño', custom: 'Sistema a medida',
+                };
+                const projectLabel = projectLabels[call.project_type || ''] || call.project_type || null;
+                return (
+                  <Link
+                    key={call.id}
+                    href={`/conversations/${call.conversation_id}`}
+                    style={{ textDecoration: 'none', color: 'inherit' }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 14,
+                        padding: '14px 20px',
+                        borderBottom: idx < pastCalls.length - 1 ? '1px solid var(--border)' : 'none',
+                        cursor: 'pointer',
+                        transition: 'background 0.1s',
+                        opacity: 0.7,
+                      }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg-elevated)'; (e.currentTarget as HTMLElement).style.opacity = '1'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; (e.currentTarget as HTMLElement).style.opacity = '0.7'; }}
+                    >
+                      {/* Avatar */}
+                      <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--text-muted)', flexShrink: 0 }}>
+                        {(call.name || call.phone || '?').charAt(0).toUpperCase()}
+                      </div>
+                      {/* Name + phone */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {call.name || 'Sin nombre'}
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                          <Phone size={10} />
+                          {call.phone}
+                        </div>
+                      </div>
+                      {/* Date */}
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 5 }}>
+                        <CalendarCheck size={12} />
+                        {fmtMX(parseMXDatetime(call.preferred_datetime!), "d MMM · HH:mm'h'")}
+                      </div>
+                      {/* Project badge */}
+                      {projectLabel && (
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', background: 'var(--bg-elevated)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 6, whiteSpace: 'nowrap' }}>
+                          {projectLabel}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* KPI Grid */}
       <div

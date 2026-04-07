@@ -294,7 +294,7 @@ export async function getRecentActivity(limit = 15) {
   return unique.slice(0, limit);
 }
 
-/** Get upcoming scheduled calls with full details */
+/** Get all scheduled calls sorted by preferred_datetime ascending (nearest first) */
 export async function getUpcomingCalls() {
   const supabase = getSupabaseAdmin();
   const { data } = await supabase
@@ -302,8 +302,8 @@ export async function getUpcomingCalls() {
     .select('id, name, phone, preferred_datetime, conversation_id, project_type, objective, notes')
     .eq('status', 'scheduled')
     .not('preferred_datetime', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(20);
+    .order('preferred_datetime', { ascending: true })
+    .limit(50);
   return data || [];
 }
 
