@@ -21,7 +21,7 @@ const PROJECT_TYPES = [
 export default function ScheduleCallModal({ open, onClose }: ScheduleCallModalProps) {
   const router = useRouter();
   const [name, setName] = useState('');
-  const [phone, setPhone] = useState('+52');
+  const [phone, setPhone] = useState('');
   const [datetime, setDatetime] = useState('');
   const [projectType, setProjectType] = useState('');
   const [notes, setNotes] = useState('');
@@ -32,7 +32,7 @@ export default function ScheduleCallModal({ open, onClose }: ScheduleCallModalPr
 
   function resetForm() {
     setName('');
-    setPhone('+52');
+    setPhone('');
     setDatetime('');
     setProjectType('');
     setNotes('');
@@ -197,7 +197,7 @@ export default function ScheduleCallModal({ open, onClose }: ScheduleCallModalPr
               </label>
               <input
                 type="tel"
-                placeholder="+52 55 1234 5678"
+                placeholder="+52 55 1234 5678 · +34 6XX XXX XXX · +1 212..."
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 style={inputStyle}

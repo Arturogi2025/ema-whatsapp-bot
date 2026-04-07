@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getRelevantExamples, formatPortfolioText, detectCategory } from './portfolio';
-import { buildTimezoneContext } from './timezone';
+import { buildTimezoneContext, buildTimezoneSchedulingNudge, needsTimezonesClarification } from './timezone';
 
 // ============================================================
 // Constants
@@ -756,6 +756,11 @@ export async function handleAIConversation(
     intentNudge += language === 'en'
       ? '\n\n[CRITICAL FORMAT INSTRUCTION] This is the client\'s FIRST message. You MUST structure your response as exactly 2 blocks separated by the delimiter "---" on its own line. Do NOT merge them into one message. Each block becomes a separate WhatsApp message.\n\nBlock 1: Warm greeting + thanks for contacting Bolt (1-2 sentences)\n---\nBlock 2: Ask what project they need (1-2 sentences)\n\nYour response MUST contain "---" as a separator. Example:\nHi! 👋 Thanks for reaching out to Bolt, great to connect with you.\n---\nWhat kind of project do you have in mind? Are you looking for a website, online store, or something different? 🚀'
       : '\n\n[INSTRUCCION CRITICA DE FORMATO] Este es el PRIMER mensaje del cliente. DEBES estructurar tu respuesta en exactamente 2 bloques separados por el delimitador "---" en una linea sola. NO los juntes en un solo mensaje. Cada bloque se enviara como un mensaje WhatsApp separado.\n\nBloque 1: Saludo calido + agradecimiento por contactar a Bolt (1-2 oraciones)\n---\nBloque 2: Pregunta sobre que tipo de proyecto necesita (1-2 oraciones)\n\nTu respuesta DEBE contener "---" como separador. Ejemplo:\n¡Hola! 👋 Muchas gracias por contactar a Bolt, es un placer saludarle.\n---\nCuenteme, ¿que tipo de proyecto tiene en mente? ¿Busca una pagina web, tienda en linea, o algo diferente? 🚀';
+  }
+
+  // ── Timezone clarification nudge: when scheduling + foreign timezone ──
+  if (intent === 'confirm_schedule' && options?.phone && needsTimezonesClarification(options.phone)) {
+    intentNudge += buildTimezoneSchedulingNudge(options.phone, language);
   }
 
   // ── Deferral nudge: if customer says they'll respond later, be gracious ──

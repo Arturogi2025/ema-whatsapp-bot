@@ -5,17 +5,15 @@ import { createCalendarEvent, isGoogleConnected } from '@/lib/google-calendar';
 function normalizePhone(raw: string): string {
   // Strip spaces, dashes, parentheses
   let phone = raw.replace(/[\s\-()]/g, '');
-  // Ensure + prefix
-  if (!phone.startsWith('+')) {
-    // If starts with country code without +, add it
-    if (phone.startsWith('52') && phone.length >= 12) {
-      phone = '+' + phone;
-    } else {
-      // Assume Mexican number
-      phone = '+52' + phone;
-    }
-  }
-  return phone;
+  if (phone.startsWith('+')) return phone; // Already has country code
+  // 10-digit bare number → assume Mexico +52
+  if (/^\d{10}$/.test(phone)) return '+52' + phone;
+  // 12-digit starting with 52 → +52...
+  if (phone.startsWith('52') && phone.length >= 12) return '+' + phone;
+  // 11+ digits starting with another country code → just add +
+  if (phone.length >= 11) return '+' + phone;
+  // Short number → assume Mexico
+  return '+52' + phone;
 }
 
 export async function POST(req: NextRequest) {

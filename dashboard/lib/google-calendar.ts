@@ -150,12 +150,17 @@ export async function createCalendarEvent(lead: {
     'Creado desde Bolt CRM',
   ].filter(Boolean);
 
-  // Parse the datetime — handle both ISO and datetime-local format
+  // Parse the datetime.
+  // If preferred_datetime already has a timezone offset (e.g. "2026-04-08T09:00:00-06:00")
+  // use it as-is. If it's a bare datetime-local string (e.g. "2026-04-08T09:00") with no
+  // offset, treat it as Mexico City time (UTC-6, permanent since Mexico abolished DST in 2022).
   let startDate: Date;
-  if (lead.preferred_datetime.includes('T')) {
+  const hasTzOffset = /([+-]\d{2}:?\d{2}|Z)$/.test(lead.preferred_datetime);
+  if (hasTzOffset) {
     startDate = new Date(lead.preferred_datetime);
   } else {
-    startDate = new Date(lead.preferred_datetime);
+    // Append Mexico City offset so the server (which runs in UTC) parses it correctly
+    startDate = new Date(lead.preferred_datetime + '-06:00');
   }
 
   // If the date is invalid, bail
@@ -179,8 +184,8 @@ export async function createCalendarEvent(lead: {
       reminders: {
         useDefault: false,
         overrides: [
-          { method: 'popup', minutes: 15 },
-          { method: 'popup', minutes: 5 },
+          { method: 'popup', minutes: 60 },
+          { method: 'popup', minutes: 30 },
         ],
       },
     },
