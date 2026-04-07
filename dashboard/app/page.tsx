@@ -6,11 +6,13 @@ import RecentConversationsTable from '@/components/RecentConversationsTable';
 import PeriodFilter from '@/components/PeriodFilter';
 import AutoRefresh from '@/components/AutoRefresh';
 import PushNotificationToggle from '@/components/PushNotificationToggle';
-import { MessageSquare, Users, CalendarCheck, Zap, MapPin, Clock, TrendingUp, Bell, UserPlus, PhoneCall, Activity } from 'lucide-react';
+import { MessageSquare, Users, CalendarCheck, Zap, MapPin, Clock, TrendingUp, Bell, UserPlus, PhoneCall, Activity, Phone, Briefcase } from 'lucide-react';
 import { fmtMX } from '@/lib/tz';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import AgendaHeader from '@/components/AgendaHeader';
+import ScheduleCallButton from '@/components/ScheduleCallButton';
 
 export const dynamic = 'force-dynamic';
 
@@ -112,6 +114,145 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>
           {fmtMX(new Date(), "EEEE d 'de' MMMM, yyyy")}
         </p>
+      </div>
+
+      {/* ═══ AGENDA — Upcoming Calls ═══ */}
+      <div style={{ marginBottom: 28 }}>
+        <AgendaHeader count={upcomingCalls.length} />
+
+        {upcomingCalls.length === 0 ? (
+          <Card style={{ padding: '40px 24px', textAlign: 'center' as const }}>
+            <CalendarCheck size={36} color="var(--text-muted)" strokeWidth={1.5} style={{ marginBottom: 10, opacity: 0.4 }} />
+            <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>No tienes llamadas agendadas</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, opacity: 0.7 }}>Cuando un lead confirme horario, aparecerá aquí</div>
+            <div style={{ marginTop: 16 }}>
+              <ScheduleCallButton label="Agendar primera llamada" />
+            </div>
+          </Card>
+        ) : (
+          <div
+            className="agenda-grid"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+              gap: 12,
+            }}
+          >
+            {upcomingCalls.map((call) => {
+              const projectLabels: Record<string, string> = {
+                web: 'Página web',
+                ecommerce: 'Tienda online',
+                landing: 'Landing page',
+                redesign: 'Rediseño',
+                custom: 'Sistema a medida',
+              };
+              const projectLabel = projectLabels[call.project_type || ''] || call.project_type || null;
+
+              return (
+                <Link
+                  key={call.id}
+                  href={`/conversations/${call.conversation_id}`}
+                  style={{ textDecoration: 'none', color: 'inherit' }}
+                >
+                  <div
+                    className="agenda-card"
+                    style={{
+                      background: 'var(--bg-surface)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 12,
+                      padding: '16px 20px',
+                      cursor: 'pointer',
+                      transition: 'border-color 0.15s, box-shadow 0.15s',
+                      borderLeft: '3px solid #F5C300',
+                    }}
+                  >
+                    {/* Name + project badge */}
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: '50%',
+                            background: 'rgba(245,195,0,0.12)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            fontSize: 14,
+                            fontWeight: 700,
+                            color: '#F5C300',
+                          }}
+                        >
+                          {(call.name || call.phone || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {call.name || 'Sin nombre'}
+                          </div>
+                          <div style={{ fontSize: 12, color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: 4, marginTop: 1 }}>
+                            <Phone size={11} />
+                            {call.phone}
+                          </div>
+                        </div>
+                      </div>
+                      {projectLabel && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#F5C300',
+                            background: 'rgba(245,195,0,0.1)',
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {projectLabel}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Date/time */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 6,
+                        fontSize: 13,
+                        color: 'var(--text-secondary)',
+                        fontWeight: 500,
+                        marginBottom: call.objective || call.notes ? 8 : 0,
+                      }}
+                    >
+                      <CalendarCheck size={13} color="var(--text-muted)" />
+                      {call.preferred_datetime}
+                    </div>
+
+                    {/* Objective or notes */}
+                    {(call.objective || call.notes) && (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: 'var(--text-muted)',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 5,
+                        }}
+                      >
+                        <Briefcase size={11} style={{ flexShrink: 0 }} />
+                        {call.objective || call.notes}
+                      </div>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* KPI Grid */}
@@ -256,131 +397,68 @@ export default async function OverviewPage({ searchParams }: { searchParams: { p
         </div>
       </div>
 
-      {/* Activity feed + Upcoming calls row */}
-      <div className="kpi-flex-row" style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: 16, marginBottom: 24 }}>
-        {/* Activity Feed */}
-        <Card>
-          <CardHeader
-            title="Actividad reciente"
-            sub="Últimos contactos y eventos"
-            action={
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Activity size={14} color="var(--brand)" />
-                <span style={{ fontSize: 11, color: 'var(--brand)', fontWeight: 600 }}>En vivo</span>
-              </div>
-            }
-          />
-          <div style={{ padding: '16px 24px 20px' }}>
-            {recentActivity.length === 0 ? (
-              <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                Sin actividad reciente
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {recentActivity.map((item) => {
-                  const config = ACTIVITY_ICONS[item.type] || ACTIVITY_ICONS.message;
-                  const Icon = config.icon;
-                  return (
-                    <Link
-                      key={item.id}
-                      href={item.conversationId ? `/conversations/${item.conversationId}` : '#'}
-                      style={{ textDecoration: 'none', color: 'inherit' }}
-                    >
-                      <div className="activity-feed-item" style={{ cursor: 'pointer' }}>
-                        <div
-                          style={{
-                            width: 34,
-                            height: 34,
-                            borderRadius: 8,
-                            background: config.bg,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          <Icon size={16} color={config.color} />
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            {item.title}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
-                            {item.subtitle}
-                          </div>
-                        </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                          {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true, locale: es })}
-                        </div>
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </Card>
-
-        {/* Upcoming calls */}
-        <Card>
-          <CardHeader title="Llamadas pendientes" sub="Citas agendadas por confirmar" />
-          <div style={{ padding: '16px 24px 20px' }}>
-            {upcomingCalls.length === 0 ? (
-              <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
-                <CalendarCheck size={28} color="var(--text-muted)" strokeWidth={1.5} style={{ marginBottom: 8, opacity: 0.5 }} />
-                <div>Sin llamadas pendientes</div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {upcomingCalls.map((call) => (
+      {/* Activity feed */}
+      <Card style={{ marginBottom: 24 }}>
+        <CardHeader
+          title="Actividad reciente"
+          sub="Últimos contactos y eventos"
+          action={
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Activity size={14} color="var(--brand)" />
+              <span style={{ fontSize: 11, color: 'var(--brand)', fontWeight: 600 }}>En vivo</span>
+            </div>
+          }
+        />
+        <div style={{ padding: '16px 24px 20px' }}>
+          {recentActivity.length === 0 ? (
+            <div style={{ padding: '32px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              Sin actividad reciente
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {recentActivity.map((item) => {
+                const config = ACTIVITY_ICONS[item.type] || ACTIVITY_ICONS.message;
+                const Icon = config.icon;
+                return (
                   <Link
-                    key={call.id}
-                    href={`/conversations/${call.conversation_id}`}
+                    key={item.id}
+                    href={item.conversationId ? `/conversations/${item.conversationId}` : '#'}
                     style={{ textDecoration: 'none', color: 'inherit' }}
                   >
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 12,
-                        padding: '10px 12px',
-                        borderRadius: 8,
-                        border: '1px solid var(--border)',
-                        background: 'var(--bg-elevated)',
-                        cursor: 'pointer',
-                        transition: 'border-color 0.15s',
-                      }}
-                    >
+                    <div className="activity-feed-item" style={{ cursor: 'pointer' }}>
                       <div
                         style={{
-                          width: 32,
-                          height: 32,
-                          borderRadius: '50%',
-                          background: 'rgba(59,130,246,0.12)',
+                          width: 34,
+                          height: 34,
+                          borderRadius: 8,
+                          background: config.bg,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexShrink: 0,
                         }}
                       >
-                        <PhoneCall size={14} color="#3b82f6" />
+                        <Icon size={16} color={config.color} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {call.name || call.phone}
+                          {item.title}
                         </div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {call.preferred_datetime}
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 1 }}>
+                          {item.subtitle}
                         </div>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                        {formatDistanceToNow(new Date(item.timestamp), { addSuffix: true, locale: es })}
                       </div>
                     </div>
                   </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </Card>
 
       {/* Recent conversations */}
       <Card>

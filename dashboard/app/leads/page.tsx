@@ -1,6 +1,7 @@
 import { getLeads, getStats } from '@/lib/queries';
 import LeadsTable from '@/components/LeadsTable';
 import ExportButton from '@/components/ExportButton';
+import ScheduleCallButton from '@/components/ScheduleCallButton';
 import { Users, Calendar, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 
@@ -26,7 +27,10 @@ export default async function LeadsPage({ searchParams }: { searchParams: { stat
           <h1 style={{ fontSize: 26, fontWeight: 700, color: 'var(--text-primary)' }}>Leads</h1>
           <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>CRM de prospectos generados via WhatsApp</p>
         </div>
-        <ExportButton status={status} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <ScheduleCallButton />
+          <ExportButton status={status} />
+        </div>
       </div>
 
       {/* Mini KPIs */}

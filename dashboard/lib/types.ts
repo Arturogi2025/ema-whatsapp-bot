@@ -41,6 +41,8 @@ export interface Lead {
   objective: string | null;
   preferred_datetime: string | null;
   status: LeadStatus;
+  notes: string | null;
+  google_event_id: string | null;
   created_at: string;
 }
 
