@@ -1,7 +1,10 @@
 import { google } from 'googleapis';
 import { getSupabaseAdmin } from './supabase';
 
-const SCOPES = ['https://www.googleapis.com/auth/calendar.events'];
+const SCOPES = [
+  'https://www.googleapis.com/auth/calendar.events',
+  'https://www.googleapis.com/auth/userinfo.email',
+];
 const SETTINGS_KEY = 'google_calendar_tokens';
 
 interface GoogleTokens {
