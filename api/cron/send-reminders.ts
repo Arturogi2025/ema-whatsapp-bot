@@ -518,7 +518,7 @@ async function checkReminderSent(
 // Helper: Parse meeting datetime string
 // ════════════════════════════════════════════════════
 
-function parseMeetingTime(datetimeStr: string): Date | null {
+export function parseMeetingTime(datetimeStr: string): Date | null {
   // ── Try ISO format first (new format from resolveToAbsoluteDate) ──
   // Matches: "2026-04-07T11:00:00-06:00" or "2026-04-07T11:00:00"
   const isoDate = new Date(datetimeStr);
