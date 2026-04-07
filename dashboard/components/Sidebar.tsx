@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   MessageSquare,
   Users,
+  Settings,
   Zap,
   LogOut,
 } from 'lucide-react';
@@ -15,6 +16,7 @@ const nav = [
   { href: '/', label: 'Overview', icon: LayoutDashboard },
   { href: '/conversations', label: 'Conversaciones', icon: MessageSquare },
   { href: '/leads', label: 'Leads', icon: Users },
+  { href: '/settings', label: 'Ajustes', icon: Settings },
 ];
 
 export default function Sidebar() {

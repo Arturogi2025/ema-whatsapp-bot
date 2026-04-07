@@ -263,6 +263,7 @@ export async function resetFollowupStage(
 
 /**
  * Mark conversation as scheduled and update lead.
+ * Also syncs with Google Calendar if connected.
  */
 export async function markAsScheduled(
   conversationId: string,
@@ -280,4 +281,28 @@ export async function markAsScheduled(
       .update({ status: 'scheduled', preferred_datetime: datetime })
       .eq('conversation_id', conversationId),
   ]);
+
+  // Sync with Google Calendar (non-blocking)
+  try {
+    const { data: lead } = await supabase
+      .from('leads_bolt')
+      .select('id')
+      .eq('conversation_id', conversationId)
+      .single();
+
+    if (lead) {
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.DASHBOARD_URL;
+      if (appUrl) {
+        fetch(`${appUrl}/api/leads/sync-calendar`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId: lead.id }),
+        }).catch((err) => {
+          console.error('[markAsScheduled] Calendar sync failed (non-fatal):', err);
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[markAsScheduled] Calendar sync error (non-fatal):', err);
+  }
 }
