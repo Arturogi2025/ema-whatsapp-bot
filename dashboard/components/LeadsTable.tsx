@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import StatusBadge from './StatusBadge';
 import { Phone, Briefcase, Calendar, Target, Pencil, Check, X, Loader2 } from 'lucide-react';
-import { fmtRelativeMX } from '@/lib/tz';
+import { fmtMX, fmtRelativeMX } from '@/lib/tz';
 import type { Lead } from '@/lib/types';
 
 const PROJECT_TYPE_LABELS: Record<string, string> = {
