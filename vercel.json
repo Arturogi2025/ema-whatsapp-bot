@@ -3,6 +3,9 @@
     "api/webhooks/whatsapp.ts": {
       "maxDuration": 30
     },
+    "api/internal/respond.ts": {
+      "maxDuration": 180
+    },
     "api/cron/send-reminders.ts": {
       "maxDuration": 120
     }

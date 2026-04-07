@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { getRelevantExamples, formatPortfolioText, detectCategory } from './portfolio';
+import { buildTimezoneContext } from './timezone';
 
 // ============================================================
 // Constants
@@ -229,6 +230,16 @@ Services: Websites, Online stores, Landing pages, Redesigns, Custom systems
 
 Differentiators: Premium design (no templates), Fast delivery, SEO included, Spanish & English support, WhatsApp integrated
 
+TIME FORMAT RULE: ALWAYS specify AM or PM when mentioning times. NEVER say just "at 3" — always "at 3 PM" or "at 10 AM". This applies to ANY time mention in your response.
+
+CRITICAL AVAILABILITY RULE: NEVER say "we don't have availability", "that slot is taken", "we're booked" or anything similar. You do NOT have access to any calendar or scheduling system. ALWAYS accept whatever time the client proposes. If they say "today at noon", confirm for today at noon. NEVER invent scheduling restrictions.
+
+IMMEDIATE CALL DETECTION: If the client says something like "call me", "call me in X minutes", "here's my number", "you can reach me at...", or any variation indicating they want a call NOW or within minutes, do NOT insist on scheduling a video call or propose another day. Instead: (1) Confirm enthusiastically that someone will call them, (2) Ask for their number if not provided, or thank them if already given, (3) Mention an advisor will reach out shortly. This counts as a scheduled appointment.
+
+SPAM/VENDOR DETECTION: If the client's first message does NOT ask about web services but instead OFFERS services (social media, marketing, SEO, advertising, followers, likes, graphic design, etc.), respond briefly and politely: "Thanks for reaching out, but we're not looking for those services at this time. Best of luck! 😊" and do NOT continue the conversation.
+
+META CAMPAIGN LEADS: If the client's message says "[Lead de campana Meta..." or is a generic first message like "Hello! Can I get more info on this?", they came from a Meta/Facebook/Instagram ad. Treat them with extra enthusiasm, thank them for their interest, and ask directly about their project or business.
+
 REMINDER: You MUST respond in ENGLISH. Do NOT use Spanish.${scheduledContextEn}`;
   }
 
@@ -262,7 +273,17 @@ Reglas:
 
 Servicios: Paginas web, Tiendas en linea, Landing pages, Rediseno, Sistemas a la medida
 
-Diferenciadores: Diseno premium (no usamos plantillas), Entrega rapida, SEO incluido, Soporte en espanol, WhatsApp integrado${scheduledContext}`;
+Diferenciadores: Diseno premium (no usamos plantillas), Entrega rapida, SEO incluido, Soporte en espanol, WhatsApp integrado
+
+REGLA DE HORARIOS: SIEMPRE especifica AM/PM o la parte del dia cuando menciones horarios. NUNCA digas solo "a las 3" — siempre "a las 3 de la tarde" o "a las 10 de la manana". Esto aplica a CUALQUIER mencion de hora en tu respuesta.
+
+REGLA CRITICA DE DISPONIBILIDAD: NUNCA digas que "no hay disponibilidad", "ya no tenemos espacio", "no tenemos horario disponible" ni nada similar. NO tienes acceso a ningun calendario ni sistema de citas. SIEMPRE acepta la hora que proponga el cliente. Si el cliente dice "hoy al mediodia", confirma para hoy al mediodia. Si dice "manana a las 3", confirma para manana a las 3. NUNCA inventes restricciones de agenda.
+
+DETECCION DE LLAMADA INMEDIATA: Si el cliente dice algo como "marqueme", "llameme", "en X minutos si gusta marcar", "puede llamarme al...", "mi numero es X", o cualquier variacion que indique que quiere una llamada AHORA o en minutos, NO insistas en agendar videollamada ni propongas otro dia. En su lugar: (1) Confirma con entusiasmo que le marcaran, (2) Pide que confirme el numero si no lo ha dado, o agradece si ya lo dio, (3) Menciona que un asesor se comunicara en breve. Esto cuenta como una cita agendada.
+
+DETECCION DE SPAM/VENDEDORES: Si el primer mensaje del cliente NO pide informacion sobre servicios web, sino que OFRECE servicios (redes sociales, marketing, SEO, publicidad, seguidores, likes, diseno grafico, etc.), responde brevemente y de forma educada: "Gracias por su mensaje, pero en este momento no estamos buscando ese tipo de servicios. Le deseamos exito. 😊" y NO continues la conversacion.
+
+LEADS DE CAMPANA META: Si el mensaje del cliente dice "[Lead de campana Meta..." o es un primer mensaje generico como "Hola! Quiero mas informacion", significa que llegaron desde un anuncio de Meta/Facebook/Instagram. Tratalos con especial entusiasmo, agradece su interes, y preguntales directamente sobre su proyecto o negocio para entender como ayudarles.${scheduledContext}`;
 }
 
 // ============================================================
@@ -316,7 +337,7 @@ const PRICE_PATTERNS =
   /(?:cu[aá]nto\s+(?:cuesta|cobran|sale|costo|vale)|precio|costo|tarifa|cotizaci[oó]n|presupuesto|inversi[oó]n|rangos?\s+de\s+precio)/i;
 
 /**
- * Schedule pattern — CONSERVATIVE to avoid false positives.
+ * Schedule pattern — matches day/time references.
  *
  * Matches:
  *   - Day names: lunes, martes, ... (unambiguous)
@@ -324,13 +345,26 @@ const PRICE_PATTERNS =
  *   - Time with "a las": "a las 3", "a las 10:30 de la noche"
  *   - Explicit time: "3pm", "10am", "8:30pm", "14:00"
  *   - Full date: "15 de abril"
- *
- * Does NOT match:
- *   - Standalone numbers like "30", "12", "5000"
- *   - Vague patterns like "próxima semana", "siguiente"
+ *   - "al medio día" / "mediodía"
  */
 const SCHEDULE_PATTERNS =
-  /\b(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b|\b(?:ma[nñ]ana|hoy|pasado\s+ma[nñ]ana)\b|(?:a\s+las?\s+)\d{1,2}(?::\d{2})?(?:\s*(?:am|pm|hrs?|de\s+la\s+(?:ma[nñ]ana|tarde|noche)))?|\b\d{1,2}:\d{2}\b(?:\s*(?:am|pm|hrs?))?|\b\d{1,2}\s*(?:am|pm)\b|\b\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b/i;
+  /\b(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b|\b(?:ma[nñ]ana|hoy|pasado\s+ma[nñ]ana)\b|(?:a\s+las?\s+)\d{1,2}(?::\d{2})?(?:\s*(?:am|pm|hrs?|de\s+la\s+(?:ma[nñ]ana|tarde|noche)))?|\b\d{1,2}:\d{2}\b(?:\s*(?:am|pm|hrs?))?|\b\d{1,2}\s*(?:am|pm)\b|\b\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)\b|(?:al\s+)?medio\s*d[ií]a|mediodia/i;
+
+/**
+ * Informal scheduling / immediate call request patterns.
+ * Matches: "márcame", "llámame", "en 20 minutos", "puede marcar", "si gusta marcar"
+ */
+const IMMEDIATE_CALL_PATTERNS_ES =
+  /\b(?:m[aá]rc(?:ame|ame|ale|eme|enos|ar)|ll[aá]m(?:ame|ame|ale|eme|enos|ar))\b|\b(?:si\s+(?:gusta|quiere|puede)\s+(?:marcar|llamar))\b|\b(?:en\s+\d{1,3}\s+minutos?\s+(?:si\s+)?(?:gusta|puede|quiere)?\s*(?:marcar|llamar)?)\b|\b(?:puede\s+(?:marcar|llamar)(?:me)?)\b|\b(?:(?:le|les?)\s+(?:marco|llamo|marquemos|llamamos))\b/i;
+
+const IMMEDIATE_CALL_PATTERNS_EN =
+  /\b(?:call\s+me|give\s+me\s+a\s+call|can\s+you\s+call|in\s+\d{1,3}\s+minutes?)\b/i;
+
+/**
+ * Spam/vendor detection — matches messages that OFFER services instead of requesting them.
+ */
+const SPAM_PATTERNS =
+  /\b(?:seguidores|likes|compartidas|referencias\s+a\s+tu\s+p[aá]gina|crecer\s+(?:tus?|sus?)\s+redes|posicion(?:ar|amiento)|primeros?\s+lugares?\s+de\s+(?:las?\s+)?b[uú]squedas?|se\s+realiza\s+primero\s+el\s+trabajo|manejo\s+de\s+redes|community\s+manager|dise[nñ]o\s+gr[aá]fico|social\s+media\s+(?:management|marketing)|boost\s+your\s+(?:followers|likes|engagement)|grow\s+your\s+(?:social|business|brand))\b/i;
 
 // English schedule patterns
 const SCHEDULE_PATTERNS_EN =
@@ -352,6 +386,11 @@ function detectIntent(
     return { intent: 'followup_scheduled', shouldSendPortfolio: false };
   }
 
+  // ── Spam/vendor detection (first messages only — someone offering services) ──
+  if (messageCount <= 1 && SPAM_PATTERNS.test(lower)) {
+    return { intent: 'general' as AIResponse['intent'], shouldSendPortfolio: false };
+  }
+
   // ── First message → greeting ──
   if (messageCount === 0 && GREETING_PATTERNS.test(lower)) {
     return { intent: 'greeting', shouldSendPortfolio: false };
@@ -361,6 +400,13 @@ function detectIntent(
   const PRICE_PATTERNS_EN = /(?:how\s+much|price|cost|pricing|quote|estimate|budget|rates?|investment)\b/i;
   if (PRICE_PATTERNS.test(lower) || (language === 'en' && PRICE_PATTERNS_EN.test(lower))) {
     return { intent: 'price_inquiry', shouldSendPortfolio: false };
+  }
+
+  // ── Immediate call request (any message count — "márcame", "llámame", "en 20 minutos") ──
+  const immediateCallMatch = IMMEDIATE_CALL_PATTERNS_ES.test(lower) ||
+    (language === 'en' && IMMEDIATE_CALL_PATTERNS_EN.test(lower));
+  if (immediateCallMatch) {
+    return { intent: 'confirm_schedule', shouldSendPortfolio: false };
   }
 
   // ── Schedule confirmation ──
@@ -404,8 +450,168 @@ function extractProjectType(text: string): string | null {
 }
 
 // ============================================================
-// Datetime extraction — ordered from most specific to least
+// Datetime extraction — returns ISO 8601 absolute date
 // ============================================================
+
+/**
+ * Convert a relative datetime text like "mañana a las 11am" to an ISO 8601 string.
+ * Uses Mexico City timezone as the reference.
+ */
+function resolveToAbsoluteDate(rawDatetime: string): string {
+  const lower = rawDatetime.toLowerCase().trim();
+
+  // Get current time in Mexico City
+  const now = new Date();
+  // Create a date object in Mexico City timezone
+  const mexicoOffset = getMexicoCityOffset(now);
+  const mexicoNow = new Date(now.getTime() + mexicoOffset);
+
+  let targetDate = new Date(mexicoNow);
+
+  // ── Resolve day ──
+  const dayNames: Record<string, number> = {
+    domingo: 0, lunes: 1, martes: 2, 'mi\u00e9rcoles': 3, miercoles: 3,
+    jueves: 4, viernes: 5, 's\u00e1bado': 6, sabado: 6,
+    // English
+    sunday: 0, monday: 1, tuesday: 2, wednesday: 3,
+    thursday: 4, friday: 5, saturday: 6,
+  };
+
+  const months: Record<string, number> = {
+    enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+    julio: 6, agosto: 7, septiembre: 8, octubre: 9, noviembre: 10, diciembre: 11,
+    january: 0, february: 1, march: 2, april: 3, may: 4, june: 5,
+    july: 6, august: 7, september: 8, october: 9, november: 10, december: 11,
+  };
+
+  // Check for "pasado mañana"
+  if (/pasado\s+ma[nñ]ana/.test(lower)) {
+    targetDate.setDate(targetDate.getDate() + 2);
+  } else if (/\bma[nñ]ana\b/.test(lower) && !/de\s+la\s+ma[nñ]ana/.test(lower)) {
+    // "mañana" but NOT "de la mañana" (which means AM)
+    targetDate.setDate(targetDate.getDate() + 1);
+  } else if (/\btomorrow\b/.test(lower)) {
+    targetDate.setDate(targetDate.getDate() + 1);
+  } else if (/\bhoy\b|\btoday\b/.test(lower)) {
+    // Keep today
+  } else {
+    // Check for specific day name
+    for (const [dayName, dayNum] of Object.entries(dayNames)) {
+      if (lower.includes(dayName)) {
+        const currentDay = mexicoNow.getDay();
+        let daysAhead = dayNum - currentDay;
+        if (daysAhead <= 0) daysAhead += 7; // next occurrence
+        targetDate.setDate(targetDate.getDate() + daysAhead);
+        break;
+      }
+    }
+
+    // Check for explicit date like "15 de abril"
+    const dateMatch = lower.match(/(\d{1,2})\s+de\s+(\w+)/);
+    if (dateMatch) {
+      const monthName = dateMatch[2];
+      if (months[monthName] !== undefined) {
+        targetDate.setMonth(months[monthName]);
+        targetDate.setDate(parseInt(dateMatch[1]));
+        // If the date is in the past, assume next year
+        if (targetDate.getTime() < mexicoNow.getTime() - 24 * 60 * 60 * 1000) {
+          targetDate.setFullYear(targetDate.getFullYear() + 1);
+        }
+      }
+    }
+  }
+
+  // ── Resolve time ──
+  let hours: number | null = null;
+  let minutes = 0;
+
+  // "3pm", "11am", "8:30pm"
+  const ampmMatch = lower.match(/(\d{1,2}):?(\d{2})?\s*(am|pm)/i);
+  if (ampmMatch) {
+    hours = parseInt(ampmMatch[1]);
+    minutes = ampmMatch[2] ? parseInt(ampmMatch[2]) : 0;
+    const isPM = ampmMatch[3].toLowerCase() === 'pm';
+    if (isPM && hours < 12) hours += 12;
+    if (!isPM && hours === 12) hours = 0;
+  }
+
+  // "a las 3 de la tarde", "a las 10 de la mañana"
+  if (hours === null) {
+    const alasMatch = lower.match(/(?:a\s+las?\s+)(\d{1,2})(?::(\d{2}))?\s*(?:de\s+la\s+(ma[nñ]ana|tarde|noche))?/i);
+    if (alasMatch) {
+      hours = parseInt(alasMatch[1]);
+      minutes = alasMatch[2] ? parseInt(alasMatch[2]) : 0;
+      const period = alasMatch[3]?.toLowerCase();
+      if (period && (period === 'tarde' || period === 'noche')) {
+        if (hours < 12) hours += 12;
+      } else if (!period && hours >= 1 && hours <= 7) {
+        hours += 12; // Assume PM for ambiguous 1-7
+      }
+    }
+  }
+
+  // "al medio día" / "mediodía"
+  if (hours === null && /medio\s*d[ií]a|mediodia/.test(lower)) {
+    hours = 12;
+    minutes = 0;
+  }
+
+  // "at 3", "at 10:30"
+  if (hours === null) {
+    const atMatch = lower.match(/at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (atMatch) {
+      hours = parseInt(atMatch[1]);
+      minutes = atMatch[2] ? parseInt(atMatch[2]) : 0;
+      if (atMatch[3]) {
+        const isPM = atMatch[3].toLowerCase() === 'pm';
+        if (isPM && hours < 12) hours += 12;
+        if (!isPM && hours === 12) hours = 0;
+      } else if (hours >= 1 && hours <= 7) {
+        hours += 12;
+      }
+    }
+  }
+
+  // "por la tarde" / "por la mañana" without specific time
+  if (hours === null) {
+    if (/(?:por\s+la\s+|en\s+la\s+)tarde/.test(lower)) hours = 15;
+    else if (/(?:por\s+la\s+|en\s+la\s+)noche/.test(lower)) hours = 19;
+    else if (/(?:por\s+la\s+|en\s+la\s+)ma[nñ]ana/.test(lower)) hours = 10;
+  }
+
+  if (hours !== null) {
+    targetDate.setHours(hours, minutes, 0, 0);
+  }
+
+  // Return ISO string in Mexico City time (as UTC offset)
+  // Format: YYYY-MM-DDTHH:mm:00-06:00 (or -05:00 during DST)
+  const offsetHours = Math.round(-mexicoOffset / (60 * 60 * 1000));
+  const sign = offsetHours <= 0 ? '+' : '-';
+  const absOffset = Math.abs(offsetHours);
+  const tzStr = `${sign}${String(absOffset).padStart(2, '0')}:00`;
+
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const day = String(targetDate.getDate()).padStart(2, '0');
+  const h = String(targetDate.getHours()).padStart(2, '0');
+  const m = String(targetDate.getMinutes()).padStart(2, '0');
+
+  return `${year}-${month}-${day}T${h}:${m}:00${tzStr}`;
+}
+
+/**
+ * Get the offset from UTC for Mexico City at a given date (handles DST).
+ * Returns offset in milliseconds to ADD to UTC to get Mexico City time.
+ */
+function getMexicoCityOffset(date: Date): number {
+  // Use Intl to get the actual offset
+  const utcStr = date.toLocaleString('en-US', { timeZone: 'UTC' });
+  const mxStr = date.toLocaleString('en-US', { timeZone: 'America/Mexico_City' });
+  const utcDate = new Date(utcStr);
+  const mxDate = new Date(mxStr);
+  return mxDate.getTime() - utcDate.getTime();
+}
+
 function extractDatetime(text: string): string | null {
   const lower = text.toLowerCase();
 
@@ -422,10 +628,13 @@ function extractDatetime(text: string): string | null {
     // 4. "el jueves por la tarde" / "mañana por la noche"
     /(?:el\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|ma[nñ]ana|hoy|pasado\s+ma[nñ]ana)(?:\s+(?:por\s+la\s+|en\s+la\s+)?(?:ma[nñ]ana|tarde|noche))/i,
 
-    // 5. "el jueves" / "mañana" (day alone)
+    // 5. "al medio día" / "mediodía"
+    /(?:(?:al\s+)?medio\s*d[ií]a|mediodia)/i,
+
+    // 6. "el jueves" / "mañana" (day alone)
     /(?:el\s+)?(?:lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|ma[nñ]ana|hoy|pasado\s+ma[nñ]ana)/i,
 
-    // 6. "a las 3 de la tarde" (time with qualifier, no day)
+    // 7. "a las 3 de la tarde" (time with qualifier, no day)
     /(?:a\s+las?\s+)\d{1,2}(?::\d{2})?\s*(?:am|pm|hrs?|de\s+la\s+(?:ma[nñ]ana|tarde|noche))/i,
 
     // 7. "a las 3" (time without qualifier)
@@ -437,7 +646,16 @@ function extractDatetime(text: string): string | null {
 
   for (const pattern of patterns) {
     const match = lower.match(pattern);
-    if (match) return match[0].trim();
+    if (match) {
+      const rawDatetime = match[0].trim();
+      // Convert to absolute ISO date
+      try {
+        return resolveToAbsoluteDate(rawDatetime);
+      } catch {
+        // Fallback: return the raw text if conversion fails
+        return rawDatetime;
+      }
+    }
   }
 
   return null;
@@ -450,7 +668,8 @@ export async function handleAIConversation(
   userMessage: string,
   history: ConversationMessage[],
   conversationMessageCount: number,
-  conversationContext?: ConversationContext
+  conversationContext?: ConversationContext,
+  options?: { multiPart?: boolean; phone?: string }
 ): Promise<AIResponse> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('Missing ANTHROPIC_API_KEY');
@@ -472,9 +691,13 @@ export async function handleAIConversation(
 
   // ── Check for auto-pause triggers ──
   const deferralReason = detectDeferral(userMessage, language);
-  // Auto-pause on: schedule confirmed OR customer defers
+  // Detect spam
+  const isSpam = conversationMessageCount <= 1 && SPAM_PATTERNS.test(userMessage.toLowerCase());
+  // Auto-pause on: schedule confirmed, customer defers, OR spam detected
   const shouldAutoPause = intent === 'confirm_schedule'
     ? (language === 'en' ? 'Call scheduled - AI auto-paused' : 'Llamada agendada - IA pausada automáticamente')
+    : isSpam
+    ? 'Spam/vendedor detectado - IA pausada'
     : deferralReason;
 
   // ── Build portfolio context (internal, for AI personalization) ──
@@ -526,6 +749,13 @@ export async function handleAIConversation(
           '\n\n[CONTEXTO INTERNO] El cliente esta preguntando por precios. NUNCA des un numero. Explica amablemente que cada proyecto es unico y que en una llamada corta de 20 min puedes darle una cotizacion precisa sin compromiso. Si ya sabes su tipo de proyecto, menciona que has hecho proyectos similares y comparte el portafolio.';
         break;
     }
+  }
+
+  // ── Multi-part nudge for first messages ──
+  if (options?.multiPart && conversationMessageCount <= 1) {
+    intentNudge += language === 'en'
+      ? '\n\n[CRITICAL FORMAT INSTRUCTION] This is the client\'s FIRST message. You MUST structure your response as exactly 2 blocks separated by the delimiter "---" on its own line. Do NOT merge them into one message. Each block becomes a separate WhatsApp message.\n\nBlock 1: Warm greeting + thanks for contacting Bolt (1-2 sentences)\n---\nBlock 2: Ask what project they need (1-2 sentences)\n\nYour response MUST contain "---" as a separator. Example:\nHi! 👋 Thanks for reaching out to Bolt, great to connect with you.\n---\nWhat kind of project do you have in mind? Are you looking for a website, online store, or something different? 🚀'
+      : '\n\n[INSTRUCCION CRITICA DE FORMATO] Este es el PRIMER mensaje del cliente. DEBES estructurar tu respuesta en exactamente 2 bloques separados por el delimitador "---" en una linea sola. NO los juntes en un solo mensaje. Cada bloque se enviara como un mensaje WhatsApp separado.\n\nBloque 1: Saludo calido + agradecimiento por contactar a Bolt (1-2 oraciones)\n---\nBloque 2: Pregunta sobre que tipo de proyecto necesita (1-2 oraciones)\n\nTu respuesta DEBE contener "---" como separador. Ejemplo:\n¡Hola! 👋 Muchas gracias por contactar a Bolt, es un placer saludarle.\n---\nCuenteme, ¿que tipo de proyecto tiene en mente? ¿Busca una pagina web, tienda en linea, o algo diferente? 🚀';
   }
 
   // ── Deferral nudge: if customer says they'll respond later, be gracious ──
@@ -586,7 +816,7 @@ export async function handleAIConversation(
     model: 'claude-haiku-4-5-20251001',
     max_tokens: maxTokens,
     temperature: 0.6,
-    system: buildSystemPrompt(conversationContext, language) + portfolioContext + intentNudge,
+    system: buildSystemPrompt(conversationContext, language) + portfolioContext + intentNudge + (options?.phone ? buildTimezoneContext(options.phone) : ''),
     messages,
   });
 

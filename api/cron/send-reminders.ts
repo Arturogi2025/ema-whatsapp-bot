@@ -111,8 +111,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // 2-hour reminder — TIME-CRITICAL, always send regardless of business hours
-      if (hoursUntilMeeting >= 1.5 && hoursUntilMeeting <= 2.5) {
+      // 2-hour reminder — Only send during reasonable hours (8 AM - 10 PM Mexico City)
+      // Never send reminders between 10 PM and 8 AM
+      const reminderHour = parseInt(
+        new Date(meetingTime.getTime() - 2 * 60 * 60 * 1000).toLocaleString('en-US', {
+          timeZone: 'America/Mexico_City', hour: 'numeric', hour12: false
+        })
+      );
+      const isReasonableHour = reminderHour >= 8 && reminderHour < 22;
+
+      if (hoursUntilMeeting >= 1.5 && hoursUntilMeeting <= 2.5 && isReasonableHour) {
         const alreadySent = await checkReminderSent(supabase, lead.conversation_id, 'recordatorio_reunion_2h');
         if (!alreadySent) {
           await rateLimitDelay();
@@ -379,8 +387,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     for (const conv of deferredConversations || []) {
       if (!conv.last_customer_message_at || !conv.lead_phone) continue;
 
-      // Only handle deferral auto-pauses (not schedule auto-pauses)
+      // Only handle deferral auto-pauses (not schedule auto-pauses or spam)
       const reason = (conv.auto_pause_reason || '').toLowerCase();
+      if (reason.includes('spam') || reason.includes('vendedor')) continue;
       const isDeferral = reason.includes('respond') || reason.includes('later') ||
         reason.includes('después') || reason.includes('despues') || reason.includes('responder');
       if (!isDeferral) continue;
@@ -510,12 +519,15 @@ async function checkReminderSent(
 // ════════════════════════════════════════════════════
 
 function parseMeetingTime(datetimeStr: string): Date | null {
-  // Try ISO format first
+  // ── Try ISO format first (new format from resolveToAbsoluteDate) ──
+  // Matches: "2026-04-07T11:00:00-06:00" or "2026-04-07T11:00:00"
   const isoDate = new Date(datetimeStr);
-  if (!isNaN(isoDate.getTime()) && datetimeStr.includes('-')) {
+  if (!isNaN(isoDate.getTime()) && datetimeStr.includes('-') && datetimeStr.match(/^\d{4}-/)) {
     return isoDate;
   }
 
+  // ── Legacy fallback: parse Spanish relative/absolute text ──
+  // This handles old records that still have text like "mañana a las 11am"
   const now = new Date();
   const currentYear = now.getFullYear();
 
@@ -534,30 +546,45 @@ function parseMeetingTime(datetimeStr: string): Date | null {
       day = parseInt(dateMatch[1]);
       month = months[monthName];
     }
-    // If monthName is not a valid month (e.g., "de la tarde"), don't set day
   }
 
   let hours: number | null = null;
   let minutes = 0;
 
-  const time12Match = datetimeStr.match(/(\d{1,2}):?(\d{2})?\s*(am|pm|AM|PM)/i);
-  if (time12Match) {
-    hours = parseInt(time12Match[1]);
-    minutes = time12Match[2] ? parseInt(time12Match[2]) : 0;
-    const isPM = time12Match[3].toLowerCase() === 'pm';
-    if (isPM && hours < 12) hours += 12;
-    if (!isPM && hours === 12) hours = 0;
-  } else {
-    const time24Match = datetimeStr.match(/(\d{1,2}):(\d{2})/);
-    if (time24Match) {
-      hours = parseInt(time24Match[1]);
-      minutes = parseInt(time24Match[2]);
+  // Check for "medio día" / "mediodía"
+  if (/medio\s*d[ií]a|mediodia/i.test(datetimeStr)) {
+    hours = 12;
+    minutes = 0;
+  }
+
+  if (hours === null) {
+    const time12Match = datetimeStr.match(/(\d{1,2}):?(\d{2})?\s*(am|pm|AM|PM)/i);
+    if (time12Match) {
+      hours = parseInt(time12Match[1]);
+      minutes = time12Match[2] ? parseInt(time12Match[2]) : 0;
+      const isPM = time12Match[3].toLowerCase() === 'pm';
+      if (isPM && hours < 12) hours += 12;
+      if (!isPM && hours === 12) hours = 0;
     } else {
-      const simpleTimeMatch = datetimeStr.match(/las?\s+(\d{1,2})/i);
-      if (simpleTimeMatch) {
-        hours = parseInt(simpleTimeMatch[1]);
-        if (hours < 8) hours += 12;
+      const time24Match = datetimeStr.match(/(\d{1,2}):(\d{2})/);
+      if (time24Match) {
+        hours = parseInt(time24Match[1]);
+        minutes = parseInt(time24Match[2]);
+      } else {
+        const simpleTimeMatch = datetimeStr.match(/las?\s+(\d{1,2})/i);
+        if (simpleTimeMatch) {
+          hours = parseInt(simpleTimeMatch[1]);
+          // Assume PM for hours 1-7 (business hours)
+          if (hours >= 1 && hours <= 7) hours += 12;
+        }
       }
+    }
+  }
+
+  // Handle "de la tarde/noche" qualifier without am/pm
+  if (hours !== null && hours < 12) {
+    if (/(?:de\s+la\s+)?(?:tarde|noche)/i.test(datetimeStr)) {
+      hours += 12;
     }
   }
 
@@ -578,5 +605,7 @@ function parseMeetingTime(datetimeStr: string): Date | null {
     return meetingDate;
   }
 
+  // ── Cannot parse — log warning ──
+  console.warn(`[Cron] Cannot parse meeting time: "${datetimeStr}"`);
   return null;
 }
