@@ -177,6 +177,39 @@ export function parseWebhookPayload(body: any): WhatsAppMessage | null {
         mediaType: 'reaction',
       };
 
+    case 'interactive': {
+      const interactive = (msg as any).interactive;
+      let interactiveText = '';
+
+      if (interactive?.button_reply?.title) {
+        interactiveText = interactive.button_reply.title;
+      } else if (interactive?.list_reply?.title) {
+        interactiveText = `${interactive.list_reply.title}${interactive.list_reply.description ? ': ' + interactive.list_reply.description : ''}`;
+      } else if (interactive?.nfm_reply) {
+        // Meta Ads native flow message — try to extract form data
+        try {
+          const formData = JSON.parse(interactive.nfm_reply.response_json || '{}');
+          const values = Object.values(formData).filter(v => typeof v === 'string' && v.toLowerCase() !== 'sent');
+          if (values.length > 0) interactiveText = values.join(', ');
+        } catch {}
+      }
+
+      // If no meaningful text, this is likely a Meta campaign form/button response
+      if (!interactiveText || interactiveText.toLowerCase() === 'sent') {
+        return {
+          ...base,
+          text: '[Lead de campaña Meta - respondió formulario/botón de anuncio mostrando interés en servicios web]',
+          mediaType: 'text',
+        };
+      }
+
+      return {
+        ...base,
+        text: interactiveText,
+        mediaType: 'text',
+      };
+    }
+
     default:
       // Handle unknown types gracefully
       return {
