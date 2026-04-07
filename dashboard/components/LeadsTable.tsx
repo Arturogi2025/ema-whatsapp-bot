@@ -1,8 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import StatusBadge from './StatusBadge';
-import { Phone, Briefcase, Calendar, Target } from 'lucide-react';
+import { Phone, Briefcase, Calendar, Target, Pencil, Check, X, Loader2 } from 'lucide-react';
 import { fmtMX } from '@/lib/tz';
 import type { Lead } from '@/lib/types';
 
@@ -15,6 +16,45 @@ const PROJECT_TYPE_LABELS: Record<string, string> = {
 
 export default function LeadsTable({ leads, emptyMessage }: { leads: Lead[]; emptyMessage: string }) {
   const router = useRouter();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDatetime, setEditDatetime] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  function toDatetimeLocal(iso: string): string {
+    // Convert ISO or bare string to datetime-local format "YYYY-MM-DDTHH:mm"
+    if (!iso) return '';
+    // Strip timezone suffix for the input value
+    const bare = iso.replace(/([+-]\d{2}:?\d{2}|Z)$/, '');
+    // datetime-local needs exactly "YYYY-MM-DDTHH:mm"
+    return bare.length >= 16 ? bare.slice(0, 16) : bare;
+  }
+
+  function startEdit(e: React.MouseEvent, lead: Lead) {
+    e.stopPropagation();
+    setEditingId(lead.id);
+    setEditDatetime(toDatetimeLocal(lead.preferred_datetime || ''));
+  }
+
+  function cancelEdit(e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditingId(null);
+  }
+
+  async function saveReschedule(e: React.MouseEvent, leadId: string) {
+    e.stopPropagation();
+    if (!editDatetime) return;
+    setSaving(true);
+    try {
+      await fetch('/api/leads/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId, preferred_datetime: editDatetime }),
+      });
+      setEditingId(null);
+      router.refresh();
+    } catch {}
+    setSaving(false);
+  }
 
   if (leads.length === 0) {
     return (
@@ -75,11 +115,52 @@ export default function LeadsTable({ leads, emptyMessage }: { leads: Lead[]; emp
                 <span style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>Sin definir</span>
               )}
             </td>
-            <td style={{ padding: '14px 20px' }}>
-              {lead.preferred_datetime ? (
+            <td style={{ padding: '14px 20px' }} onClick={e => e.stopPropagation()}>
+              {editingId === lead.id ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <input
+                    type="datetime-local"
+                    value={editDatetime}
+                    onChange={e => setEditDatetime(e.target.value)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 6,
+                      border: '1px solid var(--border)',
+                      background: 'var(--bg-elevated)',
+                      color: 'var(--text-primary)',
+                      fontSize: 12,
+                      colorScheme: 'dark',
+                    }}
+                  />
+                  <button
+                    onClick={(e) => saveReschedule(e, lead.id)}
+                    disabled={saving}
+                    style={{ background: '#22c55e', border: 'none', borderRadius: 5, padding: '4px 6px', cursor: 'pointer', display: 'flex' }}
+                  >
+                    {saving ? <Loader2 size={12} color="#fff" style={{ animation: 'spin 1s linear infinite' }} /> : <Check size={12} color="#fff" />}
+                  </button>
+                  <button
+                    onClick={cancelEdit}
+                    style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 5, padding: '4px 6px', cursor: 'pointer', display: 'flex' }}
+                  >
+                    <X size={12} color="var(--text-muted)" />
+                  </button>
+                </div>
+              ) : lead.preferred_datetime ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <Calendar size={12} color="#22c55e" />
-                  <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{lead.preferred_datetime}</span>
+                  <span style={{ fontSize: 13, color: 'var(--text-primary)' }}>{fmtMX(lead.preferred_datetime, 'd MMM HH:mm')}</span>
+                  {lead.status === 'scheduled' && (
+                    <button
+                      onClick={(e) => startEdit(e, lead)}
+                      title="Reagendar"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px', display: 'flex', opacity: 0.5 }}
+                      onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                      onMouseLeave={e => (e.currentTarget.style.opacity = '0.5')}
+                    >
+                      <Pencil size={11} color="var(--text-muted)" />
+                    </button>
+                  )}
                 </div>
               ) : (
                 <span style={{ fontSize: 13, color: 'var(--text-muted)', fontStyle: 'italic' }}>Sin agendar</span>

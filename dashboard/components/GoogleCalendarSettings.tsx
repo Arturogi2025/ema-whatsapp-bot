@@ -147,7 +147,7 @@ export default function GoogleCalendarSettings() {
               </div>
             )}
             <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-              Las llamadas agendadas se crean automaticamente como eventos en tu calendario con recordatorios de 15 y 5 minutos antes.
+              Las llamadas agendadas se crean automaticamente como eventos en tu calendario con recordatorios de 60 y 30 minutos antes.
             </div>
 
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
