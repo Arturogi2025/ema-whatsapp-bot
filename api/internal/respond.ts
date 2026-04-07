@@ -89,20 +89,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // ── Anti-double-message: use Supabase advisory lock via updated_at ──
-    // Check if an assistant message was sent in the last 60 seconds (another invocation beat us)
-    const oneMinAgo = new Date(Date.now() - 60000).toISOString();
-    const { data: recentBotMsgs } = await supabaseCheck
+    // ── Anti-double-message: check if bot already responded AFTER the latest user message ──
+    // This prevents duplicate responses from parallel invocations without blocking
+    // legitimate responses when the user replies quickly after a bot message.
+    // We find the latest user message timestamp, then check if any bot message exists after it.
+    const { data: latestUserMsg } = await supabaseCheck
       .from('messages')
-      .select('id')
+      .select('timestamp')
       .eq('conversation_id', conversationId)
-      .eq('role', 'assistant')
-      .gte('timestamp', oneMinAgo)
-      .limit(1);
+      .eq('role', 'user')
+      .order('timestamp', { ascending: false })
+      .limit(1)
+      .single();
 
-    if (recentBotMsgs && recentBotMsgs.length > 0) {
-      console.log(`[Respond] Anti-double: bot already responded in last 60s for ${conversationId}`);
-      return res.status(200).json({ skipped: 'anti_double_message' });
+    if (latestUserMsg) {
+      const { data: botMsgAfterUser } = await supabaseCheck
+        .from('messages')
+        .select('id')
+        .eq('conversation_id', conversationId)
+        .eq('role', 'assistant')
+        .gt('timestamp', latestUserMsg.timestamp)
+        .limit(1);
+
+      if (botMsgAfterUser && botMsgAfterUser.length > 0) {
+        console.log(`[Respond] Anti-double: bot already responded after last user msg for ${conversationId}`);
+        return res.status(200).json({ skipped: 'anti_double_message' });
+      }
     }
 
     // ── Aggregate all pending user messages since last bot response ──
