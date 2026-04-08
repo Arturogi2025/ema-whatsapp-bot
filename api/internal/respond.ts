@@ -36,6 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     messageCount,
     conversationContext,
     conversationStatus,
+    whatsappMessageId,
   } = req.body;
 
   if (!conversationId || !phone) {
@@ -114,6 +115,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (botMsgAfterUser && botMsgAfterUser.length > 0) {
         console.log(`[Respond] Anti-double: bot already responded after last user msg for ${conversationId}`);
         return res.status(200).json({ skipped: 'anti_double_message' });
+      }
+    }
+
+    // ── WhatsApp messageId deduplication (prevents race condition from webhook retries) ──
+    // If the messages table has a whatsapp_message_id column with a UNIQUE constraint,
+    // this insert will fail for any duplicate invocation — gracefully degrading otherwise.
+    if (whatsappMessageId) {
+      const { error: dedupError } = await supabaseCheck
+        .from('respond_locks')
+        .insert({ whatsapp_message_id: whatsappMessageId, conversation_id: conversationId })
+        .select();
+
+      if (dedupError) {
+        // 23505 = unique_violation — another invocation already claimed this message
+        if (dedupError.code === '23505') {
+          console.log(`[Respond] Dedup: messageId ${whatsappMessageId} already claimed, skipping`);
+          return res.status(200).json({ skipped: 'duplicate_message_id' });
+        }
+        // Any other error (e.g. table doesn't exist yet) — continue without dedup protection
+        console.warn(`[Respond] Dedup table unavailable (${dedupError.code}), proceeding without lock`);
       }
     }
 

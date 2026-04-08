@@ -35,18 +35,36 @@ const CATEGORY_MAP: Record<string, string[]> = {
 
 /**
  * Detect the most relevant category from a text description.
+ * Matches are sorted by keyword length descending so more specific phrases
+ * (e.g. "tienda en linea") take priority over shorter substrings (e.g. "tienda").
+ * Priority order: ecommerce > web > landing > custom (when ambiguous).
  */
 export function detectCategory(text: string): string {
   const lower = text.toLowerCase();
 
-  for (const [keyword, categories] of Object.entries(CATEGORY_MAP)) {
+  // Sort entries longest-key-first to prefer specific phrases over substrings
+  const sortedEntries = Object.entries(CATEGORY_MAP).sort(
+    (a, b) => b[0].length - a[0].length
+  );
+
+  // First pass: collect all matching categories
+  const matches: string[] = [];
+  for (const [keyword, categories] of sortedEntries) {
     if (lower.includes(keyword)) {
-      return categories[0];
+      matches.push(categories[0]);
     }
   }
 
-  // Default to web if we can't detect
-  return 'web';
+  if (matches.length === 0) return 'web';
+
+  // Priority order: ecommerce > landing > web > custom
+  // This prevents "sistema" or "app" from overriding explicit ecommerce/tienda mentions
+  const PRIORITY = ['ecommerce', 'landing', 'web', 'custom'];
+  for (const cat of PRIORITY) {
+    if (matches.includes(cat)) return cat;
+  }
+
+  return matches[0];
 }
 
 /**

@@ -59,13 +59,17 @@ export default async function handler(
       return res.status(200).json({ received: true });
     }
 
-    console.log(`[WhatsApp] Message from ${message.from} (${message.mediaType}): "${message.text}"`);
+    // ── Normalize phone: WhatsApp sends numbers WITHOUT + prefix ──
+    // (e.g. "526624092853" instead of "+526624092853")
+    const normalizedPhone = message.from.startsWith('+') ? message.from : `+${message.from}`;
+
+    console.log(`[WhatsApp] Message from ${normalizedPhone} (${message.mediaType}): "${message.text}"`);
     markAsRead(message.messageId).catch(() => {});
 
     const { pushNewMessage } = require('../../lib/push');
 
     // ── Get or create conversation ──
-    const conversation = await getOrCreateConversation(message.from, message.name);
+    const conversation = await getOrCreateConversation(normalizedPhone, message.name);
 
     // ── Handle conversation status ──
     // Build context object for the AI based on current status.
@@ -143,7 +147,7 @@ export default async function handler(
       // IMPORTANT: await before returning — Vercel kills the process after res.send()
       await pushNewMessage({
         name: message.name || conversation.lead_name,
-        phone: message.from,
+        phone: normalizedPhone,
         preview: message.text,
         conversationId: conversation.id,
       }).catch((err: any) => console.error('[Push] pushNewMessage failed:', err));
@@ -187,12 +191,13 @@ export default async function handler(
         },
         body: JSON.stringify({
           conversationId: conversation.id,
-          phone: message.from,
+          phone: normalizedPhone,
           name: message.name || conversation.lead_name,
           userMessage: aiPromptText,
           messageCount: conversation.message_count,
           conversationContext,
           conversationStatus: conversation.status,
+          whatsappMessageId: message.messageId,
         }),
         signal: controller.signal,
       });

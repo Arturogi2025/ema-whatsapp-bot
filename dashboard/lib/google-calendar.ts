@@ -184,8 +184,8 @@ export async function createCalendarEvent(lead: {
       reminders: {
         useDefault: false,
         overrides: [
-          { method: 'popup', minutes: 60 },
-          { method: 'popup', minutes: 30 },
+          { method: 'popup', minutes: 15 },
+          { method: 'popup', minutes: 5 },
         ],
       },
     },
