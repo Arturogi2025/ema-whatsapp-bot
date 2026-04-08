@@ -8,6 +8,7 @@ import InternalNotes from '@/components/InternalNotes';
 import SoundAlert from '@/components/SoundAlert';
 import AutoRefresh from '@/components/AutoRefresh';
 import ConversationRightSidebar from '@/components/ConversationRightSidebar';
+import RescheduleButton from '@/components/RescheduleButton';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -229,11 +230,17 @@ export default async function ConversationDetailPage({
           )}
 
           {lead.preferred_datetime && (
-            <InfoRow
-              icon={<Calendar size={14} />}
-              label="Horario preferido"
-              value={lead.preferred_datetime}
-            />
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ color: 'var(--text-muted)', flexShrink: 0, paddingTop: 2 }}>
+                <Calendar size={14} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 4 }}>
+                  Horario preferido
+                </div>
+                <RescheduleButton leadId={lead.id} currentDatetime={lead.preferred_datetime} />
+              </div>
+            </div>
           )}
 
           <InfoRow
