@@ -9,6 +9,7 @@ import SoundAlert from '@/components/SoundAlert';
 import AutoRefresh from '@/components/AutoRefresh';
 import ConversationRightSidebar from '@/components/ConversationRightSidebar';
 import RescheduleButton from '@/components/RescheduleButton';
+import PostCallPanel from '@/components/PostCallPanel';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import {
@@ -260,6 +261,15 @@ export default async function ConversationDetailPage({
             </div>
           )}
         </>
+      )}
+
+      {/* Post-call retro panel — visible when lead exists */}
+      {lead && (
+        <PostCallPanel
+          leadId={lead.id}
+          currentStatus={lead.status}
+          currentNotes={lead.notes}
+        />
       )}
 
       {/* Tags */}

@@ -170,6 +170,42 @@ const TEMPLATES: TemplateInfo[] = [
     ],
     relevantStatuses: ['new'],
   },
+  // NO-SHOW / RECONEXIÓN
+  {
+    name: 'noshowsuave',
+    displayName: 'No-show — Reagendar (suave)',
+    category: 'utility',
+    description: 'Cliente no se presentó; intento amigable de reagendar',
+    body: 'Hola {{1}}, le escribimos del equipo de Bolt. Hoy teníamos agendada una llamada a las {{2}} y notamos que no se pudo conectar. Entendemos que el tiempo es valioso y que los imprevistos pasan. ¿Le gustaría que buscáramos otro momento esta semana para platicar sobre su proyecto? Con gusto le reagendamos. 📅',
+    variables: [
+      { key: '1', description: 'Nombre', example: 'Carlos' },
+      { key: '2', description: 'Hora', example: '4:00 PM' },
+    ],
+    relevantStatuses: ['scheduled'],
+  },
+  {
+    name: 'noshowindirecto',
+    displayName: 'No-show — Reagendar (directo)',
+    category: 'utility',
+    description: 'Cliente no se presentó; solicitud directa de nuevo horario',
+    body: 'Hola {{1}}, soy José de Bolt. Hoy teníamos una llamada agendada que no se pudo llevar a cabo. ¿Qué horario le viene bien esta semana o la próxima para reagendar? Solo dígame y listo. ⚡',
+    variables: [
+      { key: '1', description: 'Nombre', example: 'Carlos' },
+    ],
+    relevantStatuses: ['scheduled'],
+  },
+  {
+    name: 'noshowultimoaviso',
+    displayName: 'No-show — Último aviso',
+    category: 'marketing',
+    description: 'Último intento antes de cerrar el lead por no-show',
+    body: 'Hola {{1}}, le escribo por última vez de Bolt. Intentamos contactarle para la llamada que teníamos agendada pero no fue posible. Si aún le interesa hablar sobre su proyecto de {{2}}, con gusto le buscamos un espacio. De lo contrario, no hay ningún problema, le deseamos mucho éxito. 🙌',
+    variables: [
+      { key: '1', description: 'Nombre', example: 'Carlos' },
+      { key: '2', description: 'Proyecto', example: 'tienda en línea' },
+    ],
+    relevantStatuses: ['scheduled', 'contacted'],
+  },
 ];
 
 const PROJECT_TYPE_LABELS: Record<string, string> = {
