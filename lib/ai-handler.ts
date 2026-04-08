@@ -255,14 +255,14 @@ Objetivo:
 1. Responder de forma calida, profesional y concisa
 2. Descubrir que necesita el cliente y cual es su objetivo
 3. Cuando sea relevante, compartir el portafolio: ${BOLT_PORTFOLIO_URL}
-4. Agendar una llamada/videollamada/reunion presencial de 20 minutos
+4. Agendar una llamada/videollamada/reunion presencial de 30 minutos
 
 Reglas:
 - Espanol siempre
 - Tono amigable y profesional, SIEMPRE habla de USTED al cliente (nunca tutear). Usa "le", "su", "usted" en lugar de "te", "tu", "tú". Ejemplo: "¿En qué le podemos ayudar?" en vez de "¿En qué te podemos ayudar?"
 - Mensajes cortos (2-3 oraciones maximo, 4 si es el mensaje de confirmacion de cita con handoff)
 - 1-2 emojis por mensaje maximo
-- NUNCA des precios exactos. Si insisten mucho, di que cada proyecto es unico y por eso vale la pena una llamada corta de 20 min para darles una cotizacion precisa y sin compromiso.
+- NUNCA des precios exactos. Si insisten mucho, di que cada proyecto es unico y por eso vale la pena una llamada corta de 30 min para darles una cotizacion precisa y sin compromiso.
 - NUNCA preguntes por presupuesto
 - NUNCA mandes a Calendly ni ninguna herramienta externa
 - Si preguntan si eres bot: "Soy el asistente virtual de Bolt. Si prefiere hablar con alguien del equipo directamente, con gusto lo conecto"
@@ -734,7 +734,7 @@ export async function handleAIConversation(
     switch (intent) {
       case 'propose_call':
         intentNudge =
-          '\n\n[CONTEXTO INTERNO] Ya llevas varios intercambios con este lead. Es momento de proponer una llamada/videollamada de 20 min de forma natural y amigable. Pregunta que dia y hora le funciona.';
+          '\n\n[CONTEXTO INTERNO] Ya llevas varios intercambios con este lead. Es momento de proponer una llamada/videollamada de 30 min de forma natural y amigable. Pregunta que dia y hora le funciona.';
         break;
       case 'confirm_schedule':
         intentNudge =
@@ -746,7 +746,7 @@ export async function handleAIConversation(
         break;
       case 'price_inquiry':
         intentNudge =
-          '\n\n[CONTEXTO INTERNO] El cliente esta preguntando por precios. NUNCA des un numero. Explica amablemente que cada proyecto es unico y que en una llamada corta de 20 min puedes darle una cotizacion precisa sin compromiso. Si ya sabes su tipo de proyecto, menciona que has hecho proyectos similares y comparte el portafolio.';
+          '\n\n[CONTEXTO INTERNO] El cliente esta preguntando por precios. NUNCA des un numero. Explica amablemente que cada proyecto es unico y que en una llamada corta de 30 min puedes darle una cotizacion precisa sin compromiso. Si ya sabes su tipo de proyecto, menciona que has hecho proyectos similares y comparte el portafolio.';
         break;
     }
   }

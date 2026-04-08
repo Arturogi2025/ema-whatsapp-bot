@@ -291,7 +291,7 @@ export async function markAsScheduled(
       .single();
 
     if (lead) {
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.DASHBOARD_URL;
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.DASHBOARD_URL || 'https://crm.boltdevlabs.com';
       if (appUrl) {
         fetch(`${appUrl}/api/leads/sync-calendar`, {
           method: 'POST',
