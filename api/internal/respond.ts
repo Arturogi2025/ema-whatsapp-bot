@@ -165,7 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       );
     } catch (aiError) {
       console.error('[Respond] AI handler failed:', aiError);
-      const fallbackText = '¡Hola! Gracias por escribirnos 😊 En este momento estoy teniendo una dificultad técnica. Un asesor de Bolt se pondrá en contacto con usted a la brevedad.\n\nHi! Thanks for reaching out 😊 We\'re experiencing a brief technical issue. A Bolt advisor will contact you shortly.';
+      const fallbackText = '¡Hola! Gracias por escribirnos 😊 En este momento estoy teniendo una dificultad técnica. Un asesor de E-MA se pondrá en contacto con usted a la brevedad.\n\nHi! Thanks for reaching out 😊 We\'re experiencing a brief technical issue. An E-MA advisor will contact you shortly.';
       await saveMessage(conversationId, 'assistant', fallbackText, 'ai');
       await sendTextMessage(phone, fallbackText);
       return res.status(200).json({ fallback: true });
@@ -238,11 +238,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (isScheduleConfirmation && aiResponse.detectedDatetime) {
         await markAsScheduled(conversationId, aiResponse.detectedDatetime);
 
-        const advisorPhone = process.env.BOLT_ADVISOR_PHONE;
-        const advisorName = process.env.BOLT_ADVISOR_NAME || 'Bolt - Asesor';
+        const advisorPhone = process.env.EMA_ADVISOR_PHONE;
+        const advisorName = process.env.EMA_ADVISOR_NAME || 'E-MA - Asesor';
         if (advisorPhone) {
           try {
-            await sendContactCard(phone, advisorName, advisorPhone, 'Bolt');
+            await sendContactCard(phone, advisorName, advisorPhone, 'E-MA');
             console.log(`[Respond] Sent advisor contact card to ${phone}`);
           } catch (err) {
             console.error('[Respond] Failed to send advisor contact card:', err);

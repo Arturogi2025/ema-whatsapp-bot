@@ -60,7 +60,7 @@ function LoginForm() {
           width: 400,
           height: 400,
           borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(124,58,237,0.12) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, rgba(21,101,216,0.10) 0%, transparent 70%)',
           pointerEvents: 'none',
         }}
       />
@@ -82,19 +82,19 @@ function LoginForm() {
             style={{
               width: 52,
               height: 52,
-              background: 'linear-gradient(135deg, #F5C300, #FFD63A)',
+              background: 'linear-gradient(135deg, #1565D8, #1890FF)',
               borderRadius: 14,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 16px',
-              boxShadow: '0 8px 32px rgba(245, 195, 0, 0.3)',
+              boxShadow: '0 8px 32px rgba(21, 101, 216, 0.3)',
             }}
           >
             <Zap size={26} color="white" strokeWidth={2.5} fill="white" />
           </div>
           <div style={{ fontSize: 22, fontWeight: 700, color: 'var(--text-primary)' }}>
-            Bolt Dashboard
+            E-MA Dashboard
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', marginTop: 4 }}>
             Ingresa tu contraseña para continuar
@@ -149,7 +149,7 @@ function LoginForm() {
                   letterSpacing: '0.1em',
                 }}
                 onFocus={e => {
-                  if (!error) (e.target as HTMLInputElement).style.borderColor = '#F5C300';
+                  if (!error) (e.target as HTMLInputElement).style.borderColor = '#1565D8';
                 }}
                 onBlur={e => {
                   if (!error) (e.target as HTMLInputElement).style.borderColor = 'var(--border)';
@@ -171,7 +171,7 @@ function LoginForm() {
               padding: '12px',
               background: loading || !password
                 ? 'var(--bg-elevated)'
-                : 'linear-gradient(135deg, #F5C300, #FFD63A)',
+                : 'linear-gradient(135deg, #1565D8, #1890FF)',
               border: loading || !password ? '1px solid var(--border)' : 'none',
               borderRadius: 9,
               color: loading || !password ? 'var(--text-muted)' : 'white',
@@ -196,7 +196,7 @@ function LoginForm() {
             color: 'var(--text-muted)',
           }}
         >
-          Bolt AI · WhatsApp Dashboard
+          E-MA · WhatsApp Dashboard
         </div>
       </div>
     </div>

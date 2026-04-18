@@ -147,7 +147,7 @@ export async function createCalendarEvent(lead: {
     projectLabel ? `Tipo: ${projectLabel}` : null,
     lead.notes ? `Notas: ${lead.notes}` : null,
     '',
-    'Creado desde Bolt CRM',
+    'Creado desde E-MA CRM',
   ].filter(Boolean);
 
   // Parse the datetime.

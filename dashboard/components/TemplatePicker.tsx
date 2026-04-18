@@ -31,7 +31,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'Recordatorio (2 horas)',
     category: 'utility',
     description: 'Recordatorio 2 horas antes de la reunión',
-    body: 'Hola {{1}}, le recordamos que su reunión con el equipo de Bolt está programada para hoy a las {{2}}. ¿Nos confirma su asistencia? Estamos listos para atenderle. 🟡',
+    body: 'Hola {{1}}, le recordamos que su reunión con el equipo de E-MA está programada para hoy a las {{2}}. ¿Nos confirma su asistencia? Estamos listos para atenderle. 🟡',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
       { key: '2', description: 'Hora', example: '3:00 PM' },
@@ -43,7 +43,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'Recordatorio (24 horas)',
     category: 'utility',
     description: 'Recordatorio 24 horas antes de la reunión',
-    body: 'Hola {{1}}, le recordamos que mañana tiene una reunión agendada con Bolt a las {{2}}. Si necesita reagendar, responda a este mensaje y con gusto le buscamos otro horario. ⚡',
+    body: 'Hola {{1}}, le recordamos que mañana tiene una reunión agendada con E-MA a las {{2}}. Si necesita reagendar, responda a este mensaje y con gusto le buscamos otro horario. ⚡',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
       { key: '2', description: 'Hora', example: '3:00 PM' },
@@ -55,7 +55,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'Confirmación de reunión',
     category: 'utility',
     description: 'Confirma reunión agendada con detalle del asesor',
-    body: 'Hola {{1}}, su reunión con Bolt ha sido confirmada para el {{2}} a las {{3}}. Le contactará {{4}}, su asesor personalizado. Si tiene alguna duda antes de la reunión, puede escribirnos aquí. ✅',
+    body: 'Hola {{1}}, su reunión con E-MA ha sido confirmada para el {{2}} a las {{3}}. Le contactará {{4}}, su asesor personalizado. Si tiene alguna duda antes de la reunión, puede escribirnos aquí. ✅',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
       { key: '2', description: 'Fecha', example: 'jueves 10 de abril' },
@@ -83,7 +83,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'Seguimiento (48h sin respuesta)',
     category: 'marketing',
     description: 'Lead no responde en 48 horas',
-    body: 'Hola {{1}}, soy del equipo de Bolt. Le escribimos hace un par de días sobre su proyecto. ¿Sigue interesado en recibir una cotización sin compromiso? Estamos para servirle. ⚡',
+    body: 'Hola {{1}}, soy del equipo de E-MA. Le escribimos hace un par de días sobre su proyecto. ¿Sigue interesado en recibir una cotización sin compromiso? Estamos para servirle. ⚡',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
     ],
@@ -94,7 +94,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'Seguimiento (sin agendar)',
     category: 'marketing',
     description: 'Lead con interés pero sin llamada agendada',
-    body: 'Hola {{1}}, en Bolt notamos que mostró interés en su proyecto de {{2}}. ¿Le gustaría agendar una breve llamada de 15 minutos para platicar los detalles? Puede elegir el horario que más le convenga. 📅',
+    body: 'Hola {{1}}, en E-MA notamos que mostró interés en su proyecto de {{2}}. ¿Le gustaría agendar una breve llamada de 15 minutos para platicar los detalles? Puede elegir el horario que más le convenga. 📅',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
       { key: '2', description: 'Proyecto', example: 'tienda en línea' },
@@ -106,7 +106,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'Solicitar detalles',
     category: 'marketing',
     description: 'Pide más info sobre el proyecto',
-    body: 'Hola {{1}}, en Bolt estamos preparando opciones para su proyecto. ¿Podría compartirnos un poco más de detalle sobre lo que tiene en mente? Por ejemplo: funcionalidades principales, referencias de diseño que le gusten, o fecha ideal de lanzamiento. Así le preparamos una propuesta a su medida. 🎯',
+    body: 'Hola {{1}}, en E-MA estamos preparando opciones para su proyecto. ¿Podría compartirnos un poco más de detalle sobre lo que tiene en mente? Por ejemplo: funcionalidades principales, referencias de diseño que le gusten, o fecha ideal de lanzamiento. Así le preparamos una propuesta a su medida. 🎯',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
     ],
@@ -117,7 +117,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'Re-enganche (1 semana)',
     category: 'marketing',
     description: 'Lead sin respuesta en una semana',
-    body: 'Hola {{1}}, le escribe el equipo de Bolt. Hace una semana platicamos sobre su proyecto y queríamos saber si aún lo tiene en mente. Tenemos disponibilidad este mes para arrancar y podríamos tenerle una propuesta lista en 24 horas. ¿Le interesa? ⚡',
+    body: 'Hola {{1}}, le escribe el equipo de E-MA. Hace una semana platicamos sobre su proyecto y queríamos saber si aún lo tiene en mente. Tenemos disponibilidad este mes para arrancar y podríamos tenerle una propuesta lista en 24 horas. ¿Le interesa? ⚡',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
     ],
@@ -128,7 +128,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'Promoción especial',
     category: 'marketing',
     description: 'Envía descuento o promo especial',
-    body: 'Hola {{1}}, en Bolt tenemos una promoción especial este mes: {{2}}. Si le interesa aprovecharla, responda a este mensaje y le damos todos los detalles. ¡Cupo limitado! 🟡',
+    body: 'Hola {{1}}, en E-MA tenemos una promoción especial este mes: {{2}}. Si le interesa aprovecharla, responda a este mensaje y le damos todos los detalles. ¡Cupo limitado! 🟡',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
       { key: '2', description: 'Promoción', example: '20% de descuento en páginas web' },
@@ -164,7 +164,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'Bienvenida',
     category: 'marketing',
     description: 'Saludo inicial para abrir conversación',
-    body: 'Hola {{1}}, gracias por su interés en Bolt. Somos expertos en desarrollo web y creamos soluciones digitales a la medida de su negocio. ¿En qué le podemos ayudar? Responda a este mensaje y con gusto le atendemos. ⚡',
+    body: 'Hola {{1}}, gracias por su interés en E-MA. Somos expertos en desarrollo web y creamos soluciones digitales a la medida de su negocio. ¿En qué le podemos ayudar? Responda a este mensaje y con gusto le atendemos. ⚡',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
     ],
@@ -176,7 +176,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'No-show — Reagendar (suave)',
     category: 'utility',
     description: 'Cliente no se presentó; intento amigable de reagendar',
-    body: 'Hola {{1}}, le escribimos del equipo de Bolt. Hoy teníamos agendada una llamada a las {{2}} y notamos que no se pudo conectar. Entendemos que el tiempo es valioso y que los imprevistos pasan. ¿Le gustaría que buscáramos otro momento esta semana para platicar sobre su proyecto? Con gusto le reagendamos. 📅',
+    body: 'Hola {{1}}, le escribimos del equipo de E-MA. Hoy teníamos agendada una llamada a las {{2}} y notamos que no se pudo conectar. Entendemos que el tiempo es valioso y que los imprevistos pasan. ¿Le gustaría que buscáramos otro momento esta semana para platicar sobre su proyecto? Con gusto le reagendamos. 📅',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
       { key: '2', description: 'Hora', example: '4:00 PM' },
@@ -188,7 +188,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'No-show — Reagendar (directo)',
     category: 'utility',
     description: 'Cliente no se presentó; solicitud directa de nuevo horario',
-    body: 'Hola {{1}}, soy José de Bolt. Hoy teníamos una llamada agendada que no se pudo llevar a cabo. ¿Qué horario le viene bien esta semana o la próxima para reagendar? Solo dígame y listo. ⚡',
+    body: 'Hola {{1}}, soy Arturo de E-MA. Hoy teníamos una llamada agendada que no se pudo llevar a cabo. ¿Qué horario le viene bien esta semana o la próxima para reagendar? Solo dígame y listo. ⚡',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
     ],
@@ -199,7 +199,7 @@ const TEMPLATES: TemplateInfo[] = [
     displayName: 'No-show — Último aviso',
     category: 'marketing',
     description: 'Último intento antes de cerrar el lead por no-show',
-    body: 'Hola {{1}}, le escribo por última vez de Bolt. Intentamos contactarle para la llamada que teníamos agendada pero no fue posible. Si aún le interesa hablar sobre su proyecto de {{2}}, con gusto le buscamos un espacio. De lo contrario, no hay ningún problema, le deseamos mucho éxito. 🙌',
+    body: 'Hola {{1}}, le escribo por última vez de E-MA. Intentamos contactarle para la llamada que teníamos agendada pero no fue posible. Si aún le interesa hablar sobre su proyecto de {{2}}, con gusto le buscamos un espacio. De lo contrario, no hay ningún problema, le deseamos mucho éxito. 🙌',
     variables: [
       { key: '1', description: 'Nombre', example: 'Carlos' },
       { key: '2', description: 'Proyecto', example: 'tienda en línea' },

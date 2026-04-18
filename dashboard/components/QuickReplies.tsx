@@ -6,7 +6,7 @@ import { Zap, ChevronDown, ChevronUp } from 'lucide-react';
 const QUICK_REPLIES = [
   {
     label: 'Saludo inicial',
-    text: '¡Hola! 👋 Gracias por tu interés en Bolt. ¿En qué tipo de proyecto te podemos ayudar?',
+    text: '¡Hola! 👋 Gracias por su interés en E-MA. ¿Es usted residente, administrador de condominios o proveedor de mantenimiento?',
   },
   {
     label: 'Pedir más detalles',
@@ -30,7 +30,7 @@ const QUICK_REPLIES = [
   },
   {
     label: 'Agradecer',
-    text: '¡Muchas gracias por confiar en Bolt! 🙏 Estamos emocionados de trabajar en tu proyecto. Cualquier duda, aquí estamos.',
+    text: '¡Muchas gracias por confiar en E-MA! 🙏 Estamos emocionados de acompañarle en la gestión de su condominio. Cualquier duda, aquí estamos.',
   },
   {
     label: 'Fuera de horario',

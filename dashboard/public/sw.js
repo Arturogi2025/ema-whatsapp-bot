@@ -63,7 +63,7 @@ self.addEventListener('fetch', (event) => {
 // Push notifications
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
-  const title = data.title || 'Bolt Dashboard';
+  const title = data.title || 'E-MA Dashboard';
   const options = {
     body: data.body || 'Nuevo mensaje recibido',
     icon: '/icon-192.png',

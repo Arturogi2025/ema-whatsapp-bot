@@ -57,7 +57,7 @@ export async function GET(
       });
       suggestions.push({
         label: '⭐ Pedir feedback',
-        message: '¡Hola! Nos encantaría saber tu opinión sobre nuestro servicio. ¿Cómo calificarías tu experiencia con Bolt? Tu feedback nos ayuda a mejorar.',
+        message: '¡Hola! Nos encantaría saber tu opinión sobre nuestro servicio. ¿Cómo calificarías tu experiencia con E-MA? Tu feedback nos ayuda a mejorar.',
       });
       return NextResponse.json({ suggestions });
     }
@@ -66,7 +66,7 @@ export async function GET(
     if (isNewConversation) {
       suggestions.push({
         label: '👋 Dar la bienvenida',
-        message: '¡Hola! Bienvenido a Bolt. Gracias por escribirnos. Cuéntame, ¿en qué tipo de proyecto te podemos ayudar?',
+        message: '¡Hola! Bienvenido a E-MA. Gracias por escribirnos. Cuéntame, ¿en qué tipo de proyecto te podemos ayudar?',
       });
       suggestions.push({
         label: '🎯 Preguntar objetivo',

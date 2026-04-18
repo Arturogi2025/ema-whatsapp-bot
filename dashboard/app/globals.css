@@ -5,20 +5,51 @@
 @import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Bolt brand — black + electric yellow */
-  --bg-base: #080808;
-  --bg-surface: #101010;
-  --bg-elevated: #181818;
-  --border: #262626;
-  --border-subtle: #1c1c1c;
-  --text-primary: #f5f5f5;
-  --text-secondary: #a3a3a3;
-  --text-muted: #525252;
-  --brand: #F5C300;
-  --brand-light: #FFD63A;
-  --brand-dark: #C49A00;
-  --brand-glow: rgba(245, 195, 0, 0.15);
-  --brand-on-yellow: #0a0a0a;
+  /* E-MA brand — white + blue */
+  --brand: #1565D8;
+  --brand-hover: #1050B0;
+  --brand-light: rgba(21, 101, 216, 0.12);
+
+  /* Backgrounds — light mode */
+  --bg-base: #FFFFFF;
+  --bg-primary: #FFFFFF;
+  --bg-surface: #F4F6FA;
+  --bg-elevated: #EAEFF7;
+
+  /* Text */
+  --text-primary: #0D1117;
+  --text-secondary: #3D4A5C;
+  --text-muted: #7A8CA0;
+
+  /* Borders */
+  --border: #D4DCE8;
+  --border-subtle: #E8EDF5;
+  --border-light: #E8EDF5;
+
+  /* Status colors */
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --info: #1565D8;
+
+  /* Sidebar */
+  --sidebar-bg: #F0F4FB;
+  --sidebar-border: #D4DCE8;
+  --sidebar-item-hover: #E2EAF7;
+  --sidebar-item-active: rgba(21, 101, 216, 0.15);
+
+  /* Input */
+  --input-bg: #FFFFFF;
+  --input-border: #C8D4E4;
+  --input-focus: #1565D8;
+
+  /* Scrollbar */
+  --scrollbar-track: #F0F4FB;
+  --scrollbar-thumb: #C0CFDF;
+
+  /* Shadow */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
 
   --sidebar-width: 240px;
 }
@@ -47,9 +78,9 @@ html, body {
 
 /* Custom scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #52525b; }
+::-webkit-scrollbar-track { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9AAFC4; }
 
 /* Heading font — Barlow Condensed for titles */
 h1, h2, h3, .font-display {
@@ -60,20 +91,21 @@ h1, h2, h3, .font-display {
 
 /* Recharts tooltip */
 .recharts-tooltip-wrapper .recharts-default-tooltip {
-  background: #181818 !important;
-  border: 1px solid #262626 !important;
+  background: #FFFFFF !important;
+  border: 1px solid var(--border) !important;
   border-radius: 8px !important;
   padding: 10px 14px !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 .recharts-default-tooltip .recharts-tooltip-label {
-  color: #a3a3a3 !important;
+  color: var(--text-secondary) !important;
   font-size: 12px !important;
   margin-bottom: 4px !important;
 }
 
 .recharts-default-tooltip .recharts-tooltip-item {
-  color: #f5f5f5 !important;
+  color: var(--text-primary) !important;
   font-size: 13px !important;
 }
 
@@ -84,7 +116,7 @@ h1, h2, h3, .font-display {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #18181b 25%, #27272a 50%, #18181b 75%);
+  background: linear-gradient(90deg, #E8EDF5 25%, #D4DCE8 50%, #E8EDF5 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 6px;

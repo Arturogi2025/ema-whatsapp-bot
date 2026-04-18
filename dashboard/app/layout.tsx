@@ -3,8 +3,8 @@ import './globals.css';
 import DashboardShell from '@/components/DashboardShell';
 
 export const metadata: Metadata = {
-  title: 'Bolt Dashboard',
-  description: 'CRM y analytics de WhatsApp AI para Bolt',
+  title: 'E-MA Dashboard',
+  description: 'CRM y analytics de WhatsApp AI para E-MA',
   manifest: '/manifest.json',
   icons: {
     icon: [
@@ -17,13 +17,13 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'Bolt Dashboard',
+    statusBarStyle: 'default',
+    title: 'E-MA Dashboard',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#F5C300',
+  themeColor: '#1565D8',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,

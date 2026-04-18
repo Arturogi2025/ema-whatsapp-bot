@@ -6,19 +6,15 @@ const config: Config = {
     extend: {
       colors: {
         bg: {
-          base: '#09090b',
-          surface: '#111115',
-          elevated: '#18181b',
-          border: '#27272a',
+          base: '#FFFFFF',
+          surface: '#F4F6FA',
+          elevated: '#EAEFF7',
+          border: '#D4DCE8',
         },
-        brand: {
-          DEFAULT: '#7c3aed',
-          light: '#a855f7',
-          dim: '#7c3aed1a',
-        },
-        success: '#22c55e',
-        warning: '#f59e0b',
-        danger: '#ef4444',
+        brand: '#1565D8',
+        success: '#16a34a',
+        warning: '#d97706',
+        danger: '#dc2626',
       },
       fontFamily: {
         sans: [

@@ -1,11 +1,11 @@
 {
-  "name": "Bolt Dashboard",
-  "short_name": "Bolt CRM",
-  "description": "CRM y analytics de WhatsApp AI para Bolt",
+  "name": "E-MA Dashboard",
+  "short_name": "E-MA CRM",
+  "description": "CRM y analytics de WhatsApp AI para E-MA",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#080808",
-  "theme_color": "#F5C300",
+  "background_color": "#FFFFFF",
+  "theme_color": "#1565D8",
   "orientation": "any",
   "icons": [
     {

@@ -37,20 +37,20 @@ export default function Sidebar() {
           style={{
             width: 34,
             height: 34,
-            background: '#F5C300',
+            background: '#1565D8',
             borderRadius: 8,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            boxShadow: '0 0 16px rgba(245,195,0,0.3)',
+            boxShadow: '0 0 16px rgba(21,101,216,0.3)',
             flexShrink: 0,
           }}
         >
-          <Zap size={18} color="#0a0a0a" strokeWidth={2.5} fill="#0a0a0a" />
+          <Zap size={18} color="#FFFFFF" strokeWidth={2.5} fill="#FFFFFF" />
         </div>
         <div className="sidebar-logo-text">
           <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.1, letterSpacing: '0.02em', fontFamily: "'Barlow Condensed', sans-serif" }}>
-            BOLT<span style={{ color: '#F5C300' }}>.dev</span>
+            E-MA<span style={{ color: '#1565D8' }}> APP</span>
           </div>
           <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
             Dashboard
@@ -136,7 +136,7 @@ export default function Sidebar() {
           <PushNotificationToggle />
         </div>
         <div className="sidebar-version" style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 10 }}>
-          Bolt AI · WhatsApp · v1.0
+          E-MA · WhatsApp · v1.0
         </div>
         <button
           onClick={handleLogout}
