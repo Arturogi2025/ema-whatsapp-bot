@@ -5,10 +5,12 @@ const COOKIE_NAME = 'bolt_auth';
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow login page, auth APIs, and Next.js internals
+  // Allow login page, auth APIs, webhooks, and Next.js internals
   if (
     pathname.startsWith('/login') ||
     pathname.startsWith('/api/auth') ||
+    pathname.startsWith('/api/webhooks') ||
+    pathname.startsWith('/api/internal') ||
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico'
   ) {
