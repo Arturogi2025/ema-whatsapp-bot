@@ -8,11 +8,20 @@ const nextConfig = {
     remotePatterns: [{ protocol: 'https', hostname: '**' }],
   },
   // Disable default fetch cache so Supabase queries always return fresh data.
-  // This is a safety net on top of the per-client cache:'no-store' in supabase.ts.
   experimental: {
     staleTimes: {
       dynamic: 0,
     },
+  },
+  // When importing files from root lib/ (../lib/*), webpack resolves their
+  // dependencies against the root node_modules, which isn't installed by Vercel.
+  // This tells webpack to also look in dashboard/node_modules for all packages.
+  webpack: (config) => {
+    config.resolve.modules = [
+      ...config.resolve.modules,
+      path.join(__dirname, 'node_modules'),
+    ];
+    return config;
   },
 };
 
