@@ -1,5 +1,9 @@
+const path = require('path');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Allow Next.js to trace/import files from the monorepo root (lib/, api/)
+  outputFileTracingRoot: path.join(__dirname, '../'),
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '**' }],
   },
